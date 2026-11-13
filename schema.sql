@@ -3,6 +3,10 @@
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   handle TEXT NOT NULL UNIQUE,
+  display TEXT,
+  bio TEXT,
+  pass_hash TEXT,
+  pass_salt TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -37,6 +41,7 @@ CREATE TABLE IF NOT EXISTS library (
   status TEXT NOT NULL CHECK (status IN ('Quiero ver','Viendo','Vista','En pausa','Abandonada')),
   episode INTEGER NOT NULL DEFAULT 0,
   ratings TEXT NOT NULL DEFAULT '{}',
+  review TEXT,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (user_id, title_id)
 );
@@ -69,4 +74,11 @@ CREATE TABLE IF NOT EXISTS reminders (
   user_id TEXT NOT NULL REFERENCES users(id),
   premiere_id INTEGER NOT NULL REFERENCES premieres(id),
   PRIMARY KEY (user_id, premiere_id)
+);
+
+CREATE TABLE IF NOT EXISTS follows (
+  follower_id TEXT NOT NULL REFERENCES users(id),
+  followed_id TEXT NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (follower_id, followed_id)
 );

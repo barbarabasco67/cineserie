@@ -13,14 +13,58 @@ async function ensureUser(env, uid) {
   return env.DB.prepare('SELECT id, handle FROM users WHERE id = ?').bind(uid).first();
 }
 
+const enc = new TextEncoder();
+const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+async function hashPw(pw, salt) {
+  const key = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveBits']);
+  return b64(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 100000 }, key, 256));
+}
+async function checkPw(row, pw) {
+  if (!row || !row.pass_hash || !row.pass_salt || typeof pw !== 'string') return false;
+  return (await hashPw(pw, unb64(row.pass_salt))) === row.pass_hash;
+}
+// Cambios de esquema que se aplican solos la primera vez (si ya existen, se ignoran).
+let migrated;
+function migrate(env) {
+  if (!migrated) {
+    migrated = (async () => {
+      const steps = [
+        'ALTER TABLE users ADD COLUMN display TEXT',
+        'ALTER TABLE users ADD COLUMN bio TEXT',
+        'ALTER TABLE users ADD COLUMN pass_hash TEXT',
+        'ALTER TABLE users ADD COLUMN pass_salt TEXT',
+        'ALTER TABLE library ADD COLUMN review TEXT',
+        'CREATE TABLE IF NOT EXISTS follows (follower_id TEXT NOT NULL REFERENCES users(id), followed_id TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), PRIMARY KEY (follower_id, followed_id))',
+      ];
+      for (const s of steps) { try { await env.DB.prepare(s).run(); } catch { /* ya existe */ } }
+    })();
+  }
+  return migrated;
+}
+const HANDLE = /^[a-z0-9_.]{3,20}$/;
+async function meInfo(env, uid) {
+  const u = await env.DB.prepare('SELECT id, handle, display, bio, pass_hash FROM users WHERE id = ?').bind(uid).first();
+  const f = await env.DB.prepare('SELECT (SELECT COUNT(*) FROM follows WHERE followed_id = ?1) AS followers, (SELECT COUNT(*) FROM follows WHERE follower_id = ?1) AS following').bind(uid).first();
+  return { handle: u.handle, display: u.display || '', bio: u.bio || '', has_pass: !!u.pass_hash, followers: f.followers, following: f.following };
+}
+
 async function readBody(request) {
   try { return await request.json(); } catch { return null; }
 }
 
 async function handleApi(request, env, url) {
+  await migrate(env);
+  if (url.pathname === '/api/login' && request.method === 'POST') {
+    const b = await readBody(request);
+    const h = txt(b && b.handle, 30).toLowerCase().replace(/^@/, '');
+    const row = await env.DB.prepare('SELECT id, pass_hash, pass_salt FROM users WHERE handle = ?').bind(h).first();
+    if (!row || !(await checkPw(row, b && b.password))) return bad('usuario o contraseña incorrectos', 401);
+    return json({ uid: row.id });
+  }
   const uid = request.headers.get('x-uid') || '';
   if (!/^[0-9a-f-]{36}$/i.test(uid)) return bad('identificador no válido');
-  const me = await ensureUser(env, uid);
+  await ensureUser(env, uid);
   const path = url.pathname.replace(/^\/api/, '');
   const method = request.method;
 
@@ -28,9 +72,9 @@ async function handleApi(request, env, url) {
     const titles = await env.DB.prepare(
       "SELECT id, title, type, year, episodes, minutes, synopsis, genre, hue, platforms, tags, poster, director, writers, release_date, age, source, review_status,\n        (SELECT ROUND(AVG(json_extract(l.ratings, '$.score'))) FROM library l WHERE l.title_id = titles.id AND json_extract(l.ratings, '$.score') > 0) AS avg,\n        (SELECT COUNT(*) FROM library l WHERE l.title_id = titles.id AND json_extract(l.ratings, '$.score') > 0) AS votes\n       FROM titles WHERE (owner_id = ? OR review_status = 'approved')"
     ).bind(uid).all();
-    const library = await env.DB.prepare('SELECT title_id, status, episode, ratings FROM library WHERE user_id = ?').bind(uid).all();
+    const library = await env.DB.prepare('SELECT title_id, status, episode, ratings, review FROM library WHERE user_id = ?').bind(uid).all();
     const posts = await env.DB.prepare(
-      `SELECT p.id, p.body, p.title_id, p.created_at, u.handle,
+      `SELECT p.id, p.body, p.title_id, p.created_at, u.handle, u.display,
         (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
         (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
        FROM posts p JOIN users u ON u.id = p.user_id ORDER BY p.id DESC LIMIT 50`
@@ -41,6 +85,7 @@ async function handleApi(request, env, url) {
          WHERE updated_at >= datetime('now', '-7 days') AND json_extract(ratings, '$.score') > 0)
        GROUP BY title_id ORDER BY avg DESC, votes DESC LIMIT 10`
     ).all();
+    const me = await meInfo(env, uid);
     return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results });
   }
 
@@ -68,13 +113,72 @@ async function handleApi(request, env, url) {
     const rt = b.ratings && typeof b.ratings === 'object' ? { ...b.ratings } : {};
     if ('score' in rt) rt.score = int(rt.score, 0, 100, 0);
     const ratings = JSON.stringify(rt).slice(0, 300);
+    const review = txt(b.review, 400);
     try {
       await env.DB.prepare(
-        `INSERT INTO library (user_id, title_id, status, episode, ratings, updated_at) VALUES (?, ?, ?, ?, ?, datetime('now'))
-         ON CONFLICT(user_id, title_id) DO UPDATE SET status = excluded.status, episode = excluded.episode, ratings = excluded.ratings, updated_at = excluded.updated_at`
-      ).bind(uid, Number(m[1]), b.status, int(b.episode, 0, 9999, 0), ratings).run();
+        `INSERT INTO library (user_id, title_id, status, episode, ratings, review, updated_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(user_id, title_id) DO UPDATE SET status = excluded.status, episode = excluded.episode, ratings = excluded.ratings, review = excluded.review, updated_at = excluded.updated_at`
+      ).bind(uid, Number(m[1]), b.status, int(b.episode, 0, 9999, 0), ratings, review).run();
     } catch { return bad('título no encontrado', 404); }
     return json({ ok: true });
+  }
+
+  if (path === '/me' && method === 'PUT') {
+    const b = await readBody(request);
+    if (!b) return bad('cuerpo no válido');
+    const handle = txt(b.handle, 30).toLowerCase().replace(/^@/, '');
+    if (!HANDLE.test(handle)) return bad('El usuario debe tener de 3 a 20 letras, números, punto o guion bajo');
+    try {
+      await env.DB.prepare('UPDATE users SET handle = ?, display = ?, bio = ? WHERE id = ?').bind(handle, txt(b.display, 30), txt(b.bio, 160), uid).run();
+    } catch { return bad('Ese nombre de usuario ya está cogido', 409); }
+    return json(await meInfo(env, uid));
+  }
+
+  if (path === '/password' && method === 'POST') {
+    const b = await readBody(request);
+    const pw = b && typeof b.password === 'string' ? b.password : '';
+    if (pw.length < 8 || pw.length > 72) return bad('La contraseña debe tener entre 8 y 72 caracteres');
+    const row = await env.DB.prepare('SELECT pass_hash, pass_salt FROM users WHERE id = ?').bind(uid).first();
+    if (row && row.pass_hash && !(await checkPw(row, b.current))) return bad('La contraseña actual no es correcta', 403);
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    await env.DB.prepare('UPDATE users SET pass_hash = ?, pass_salt = ? WHERE id = ?').bind(await hashPw(pw, salt), b64(salt), uid).run();
+    return json({ ok: true });
+  }
+
+  m = path.match(/^\/profile\/([a-z0-9_.]{3,20})$/);
+  if (m && method === 'GET') {
+    const u = await env.DB.prepare('SELECT id, handle, display, bio, created_at FROM users WHERE handle = ?').bind(m[1]).first();
+    if (!u) return bad('Perfil no encontrado', 404);
+    const f = await env.DB.prepare('SELECT (SELECT COUNT(*) FROM follows WHERE followed_id = ?1) AS followers, (SELECT COUNT(*) FROM follows WHERE follower_id = ?1) AS following, (SELECT COUNT(*) FROM follows WHERE follower_id = ?2 AND followed_id = ?1) AS is_following').bind(u.id, uid).first();
+    const lib = await env.DB.prepare('SELECT title_id, status, episode, ratings, review, updated_at FROM library WHERE user_id = ? ORDER BY updated_at DESC LIMIT 200').bind(u.id).all();
+    const posts = await env.DB.prepare(
+      `SELECT p.id, p.body, p.title_id, p.created_at,
+        (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
+        (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
+       FROM posts p WHERE p.user_id = ? ORDER BY p.id DESC LIMIT 30`
+    ).bind(uid, u.id).all();
+    return json({ user: { handle: u.handle, display: u.display || '', bio: u.bio || '', joined: u.created_at }, followers: f.followers, following: f.following, is_following: f.is_following > 0, is_me: u.id === uid, library: lib.results, posts: posts.results });
+  }
+
+  m = path.match(/^\/follow\/([a-z0-9_.]{3,20})$/);
+  if (m && (method === 'POST' || method === 'DELETE')) {
+    const u = await env.DB.prepare('SELECT id FROM users WHERE handle = ?').bind(m[1]).first();
+    if (!u) return bad('Perfil no encontrado', 404);
+    if (u.id === uid) return bad('No puedes seguirte a ti misma');
+    if (method === 'POST') await env.DB.prepare('INSERT OR IGNORE INTO follows (follower_id, followed_id) VALUES (?, ?)').bind(uid, u.id).run();
+    else await env.DB.prepare('DELETE FROM follows WHERE follower_id = ? AND followed_id = ?').bind(uid, u.id).run();
+    const c = await env.DB.prepare('SELECT COUNT(*) AS n FROM follows WHERE followed_id = ?').bind(u.id).first();
+    return json({ following: method === 'POST', followers: c.n });
+  }
+
+  if (path === '/people' && method === 'GET') {
+    const r = await env.DB.prepare(
+      `SELECT u.handle, u.display, (SELECT COUNT(*) FROM follows f WHERE f.followed_id = u.id) AS followers
+       FROM users u WHERE u.id != ?1 AND NOT EXISTS (SELECT 1 FROM follows f WHERE f.follower_id = ?1 AND f.followed_id = u.id)
+         AND EXISTS (SELECT 1 FROM library l WHERE l.user_id = u.id)
+       ORDER BY followers DESC, u.created_at DESC LIMIT 10`
+    ).bind(uid).all();
+    return json({ people: r.results });
   }
 
   if (path === '/posts' && method === 'POST') {
