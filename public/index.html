@@ -297,6 +297,10 @@ select{width:100%;background:var(--card);border:1px solid var(--line);border-rad
 .chip[aria-pressed="true"]{box-shadow:0 3px 10px rgba(var(--acc-rgb),.3)}
 .card,.place,.ticket{transition:transform .25s var(--ease),border-color .25s,box-shadow .25s}
 @media (hover:hover){.btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(var(--acc-rgb),.35)}.chip:hover,.icon-btn:hover,.seg3 button:hover{border-color:var(--accent)}.place:hover,.ticket:hover,.gcell:hover{transform:translateY(-2px);border-color:rgba(var(--acc-rgb),.55);box-shadow:0 10px 24px rgba(0,0,0,.35)}.ncard:hover .poster,.pcard:hover .poster{transform:translateY(-3px)}}
+.card,.post,.nws,.ticket,.list-item,.place,.cmt,.react{max-width:100%;box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word}
+.card h2,.post p,.nws b,.nws .muted,.cmt p,.grow,.grow>*{min-width:0;overflow-wrap:anywhere}
+.card .wrap,.post .acts{flex-wrap:wrap}
+.card .btn{max-width:100%}
 .spo{display:flex;align-items:center;gap:8px;width:100%;margin:10px 0;padding:12px 14px;border-radius:12px;border:1px dashed var(--line);background:rgba(var(--acc-rgb),.1);color:var(--text);font:700 13px var(--fb);cursor:pointer;text-align:left}
 .cmt{padding:10px 0;border-bottom:1px solid var(--line)}.cmt:last-child{border-bottom:0}.cmt b{font-size:14px}.cmt p{margin:4px 0 0;font-size:15px}
 .cform{display:flex;gap:8px;margin-top:12px}.cform input{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:14px;color:var(--text);font:600 15px var(--fb);padding:12px 14px;outline:none}
@@ -844,15 +848,15 @@ function planList(kind){
  const intro=`<div class="card" style="margin-bottom:14px"><b>${kind==='quedada'?'Noche de peli juntas':'Maratón juntas'}</b><p class="muted small" style="margin:6px 0 0">Quedáis a la misma hora y cada una lo ve desde su casa. Mientras tanto, comentáis en directo en el chat de la sesión.</p></div>
  <button class="btn block" style="margin:0 0 14px" data-act="planopen" data-v="${kind}">${ic('plus',18)}${kind==='quedada'?'Organizar una noche de peli':'Organizar un maratón'}</button>`;
  if(!l.length)return intro+EMPTY('Aún no hay sesiones. Organiza la primera: elige título, día y hora.');
- return intro+l.map(p=>{const s=byId(p.tid),me=ME().handle===p.hh,lv=planLive(p);return `<div class="card"><span class="tag">${lv?'En directo ahora':dlabel(p.date)+(p.time?' · '+p.time:'')}</span><h2 style="font-size:18px;margin:10px 0 4px">${s?esc(s.title):'Título'}</h2><p class="muted small" style="margin:0">Organiza <button class="ulink" data-act="user" data-v="${esc(p.hh)}" style="display:inline">${esc(p.host)}</button> · ${p.n} ${p.n===1?'apuntada':'apuntadas'} · cada una desde su casa</p>${p.note?`<p style="margin:8px 0 0">${esc(p.note)}</p>`:''}<div class="wrap" style="margin-top:12px"><button class="btn ${p.j?'ghost':''}" data-act="pjoin" data-v="${p.id}" aria-pressed="${p.j}">${p.j?ic('check',18)+'Apuntada':'Apuntarme'}</button>${p.j?`<button class="btn ${lv?'':'ghost'}" data-act="liveopen" data-v="${p.id}">${ic('chat',18)}${lv?'Entrar al chat en directo':'Abrir el chat'}</button>`:''}${s?`<button class="btn ghost" data-act="open" data-id="${s.id}">Ver ficha</button>`:''}${me?`<button class="btn ghost" data-act="pdel" data-v="${p.id}">Cancelar</button>`:''}</div></div>`}).join('')}
+ return intro+l.map(p=>{const s=byId(p.tid),me=ME().handle===p.hh,lv=planLive(p);return `<div class="card"><span class="tag">${lv?'En directo ahora':dlabel(p.date)+(p.time?' · '+p.time:'')}</span><h2 style="font-size:18px;margin:10px 0 4px">${esc(s?s.title:p.name||'Sesión juntas')}</h2><p class="muted small" style="margin:0">Organiza <button class="ulink" data-act="user" data-v="${esc(p.hh)}" style="display:inline">${esc(p.host)}</button> · ${p.n} ${p.n===1?'apuntada':'apuntadas'} · cada una desde su casa</p>${p.note?`<p style="margin:8px 0 0">${esc(p.note)}</p>`:''}<div class="wrap" style="margin-top:12px"><button class="btn ${p.j?'ghost':''}" data-act="pjoin" data-v="${p.id}" aria-pressed="${p.j}">${p.j?ic('check',18)+'Apuntada':'Apuntarme'}</button>${p.j?`<button class="btn ${lv?'':'ghost'}" data-act="liveopen" data-v="${p.id}">${ic('chat',18)}${lv?'Entrar al chat en directo':'Abrir el chat'}</button>`:''}${s?`<button class="btn ghost" data-act="open" data-id="${s.id}">Ver ficha</button>`:''}${me?`<button class="btn ghost" data-act="pdel" data-v="${p.id}">Cancelar</button>`:''}</div></div>`}).join('')}
 function nextSession(){
  const now=Date.now();
  const l=PLANS.filter(p=>p.j&&planStart(p).getTime()+4*3600000>=now&&planStart(p).getTime()-86400000<=now).sort((a,b)=>planStart(a)-planStart(b));
  const p=l[0];if(!p)return '';const t=byId(p.tid),lv=planLive(p);
- return `<div class="card" style="margin-bottom:14px;border-color:var(--accent)"><span class="tag">${lv?'En directo ahora':'Tu próxima sesión · '+dlabel(p.date)+(p.time?' · '+p.time:'')}</span><h2 style="font-size:18px;margin:10px 0 4px">${t?esc(t.title):'Sesión juntas'}</h2><p class="muted small" style="margin:0">${p.n} ${p.n===1?'apuntada':'apuntadas'} · cada una desde su casa</p><button class="btn ${lv?'':'ghost'}" style="margin-top:12px" data-act="liveopen" data-v="${p.id}">${ic('chat',18)}${lv?'Entrar al chat':'Abrir el chat'}</button></div>`}
+ return `<div class="card" style="margin-bottom:14px;border-color:var(--accent)"><span class="tag">${lv?'En directo ahora':'Tu próxima sesión · '+dlabel(p.date)+(p.time?' · '+p.time:'')}</span><h2 style="font-size:18px;margin:10px 0 4px">${esc(t?t.title:p.name||'Sesión juntas')}</h2><p class="muted small" style="margin:0">${p.n} ${p.n===1?'apuntada':'apuntadas'} · cada una desde su casa</p><button class="btn ${lv?'':'ghost'}" style="margin-top:12px" data-act="liveopen" data-v="${p.id}">${ic('chat',18)}${lv?'Entrar al chat':'Abrir el chat'}</button></div>`}
 const liveItem=(c,mine)=>`<div class="cmt"><b>${esc(c.display||c.handle)}</b> <span class="muted small">${mine?'tú · ':''}${new Date(String(c.created_at).replace(' ','T')+'Z').toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</span><p>${esc(c.body)}</p></div>`;
 function liveHTML(){const L=S.live;if(!L)return '';const p=PLANS.find(x=>x.id===L.id),t=p&&byId(p.tid);
- return `<div class="sheet-head"><div class="grow"><h2>${t?esc(t.title):'Chat en directo'}</h2><p class="muted small" style="margin:2px 0 0">${p&&planLive(p)?'En directo · ':''}${p?p.n+' apuntadas':''} · cada una desde su casa</p></div><button class="icon-btn" data-act="liveclose" aria-label="Cerrar">${ic('close',18)}</button></div>
+ return `<div class="sheet-head"><div class="grow"><h2>${esc(t?t.title:(p&&p.name)||'Chat en directo')}</h2><p class="muted small" style="margin:2px 0 0">${p&&planLive(p)?'En directo · ':''}${p?p.n+' apuntadas':''} · cada una desde su casa</p></div><button class="icon-btn" data-act="liveclose" aria-label="Cerrar">${ic('close',18)}</button></div>
  <div id="livelist" style="max-height:48vh;overflow:auto;margin-top:8px">${L.msgs.length?L.msgs.map(c=>liveItem(c,c.handle===ME().handle)).join(''):'<p class="muted small">Todavía no hay mensajes. Escribe el primero.</p>'}</div>
  <div class="cform"><input id="f-lv" maxlength="300" placeholder="Escribe un mensaje" aria-label="Mensaje" autocomplete="off"><button class="btn" data-act="livesend">Enviar</button></div>`}
 let liveTimer=null;
@@ -860,7 +864,7 @@ function liveFetch(){const L=S.live;if(!L||S.sheet!=='live'){clearInterval(liveT
  send('/plans/'+L.id+'/chat?after='+L.last).then(r=>{if(!S.live||S.live!==L)return;const m=r.messages||[];if(!m.length)return;L.msgs=L.msgs.concat(m);L.last=m[m.length-1].id;const el=$('#livelist');if(el){const atEnd=el.scrollHeight-el.scrollTop-el.clientHeight<60;if(L.msgs.length===m.length)el.innerHTML='';el.insertAdjacentHTML('beforeend',m.map(c=>liveItem(c,c.handle===ME().handle)).join(''));if(atEnd)el.scrollTop=el.scrollHeight}}).catch(()=>{})}
 function planHTML(){const d=S.plan||{};
  return `<div class="sheet-head"><div class="grow"><h2>${d.kind==='quedada'?'Organizar una noche de peli':'Organizar un maratón'}</h2><p class="muted small" style="margin:4px 0 0">Cada una lo ve desde su casa a la misma hora y comentáis en el chat en directo.</p></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
- <label class="fld"><span>Título</span><select id="f-pl-id"><option value="">Elige uno</option>${SHOWS.map(s=>`<option value="${s.id}" ${String(d.id)===String(s.id)?'selected':''}>${esc(s.title)}</option>`).join('')}</select></label>
+ <label class="fld"><span>Título</span><input id="f-pl-title" maxlength="80" list="pl-list" placeholder="Escribe el título o elige uno" value="${esc(d.name||'')}" autocomplete="off"><datalist id="pl-list">${SHOWS.map(s=>`<option value="${esc(s.title)}"></option>`).join('')}</datalist></label>
  <label class="fld"><span>Día</span><input id="f-pl-d" type="date" min="${TODAYISO}" value="${esc(d.date||'')}"></label>
  <label class="fld"><span>Hora (opcional)</span><input id="f-pl-t" type="time" value="${esc(d.time||'')}"></label>
  <label class="fld"><span>Nota (opcional)</span><input id="f-pl-n" maxlength="140" placeholder="Por ejemplo: episodios 1 a 4" value="${esc(d.note||'')}"></label>
@@ -1115,8 +1119,8 @@ document.addEventListener('click',e=>{
   case 'rev':S.rev=v;render();break;
   case 'join':{const i=Number(v);if(S.joined.has(i))S.joined.delete(i);else{S.joined.add(i);toast('Te apuntamos a la maratón')}render();break}
   case 'like':{const k=isNaN(Number(v))?v:Number(v);S.liked.has(k)?S.liked.delete(k):S.liked.add(k);if(typeof k==='number')send('/posts/'+k+'/like','POST').catch(()=>{});render();break}
-  case 'planopen':S.plan={kind:v,id:'',date:'',time:'',note:''};S.sheet='plan';updateSheet();break;
-  case 'plansave':{const d=S.plan;if(!d.id||!d.date){toast('Elige título y día');break}send('/plans','POST',{kind:d.kind,title_id:Number(d.id),date:d.date,time:d.time,note:d.note}).then(()=>{S.sheet=null;toast('Plan creado');load()}).catch(()=>toast('No se ha podido crear'));break}
+  case 'planopen':S.plan={kind:v,id:'',name:'',date:'',time:'',note:''};S.sheet='plan';updateSheet();break;
+  case 'plansave':{const d=S.plan,nm=(d.name||'').trim(),hit=SHOWS.find(x=>x.title.toLowerCase()===nm.toLowerCase());if(!nm||!d.date){toast('Escribe el título y elige el día');break}send('/plans','POST',{kind:d.kind,title_id:hit?hit.id:0,title:hit?hit.title:nm,date:d.date,time:d.time,note:d.note}).then(()=>{S.sheet=null;toast('Plan creado');load()}).catch(()=>toast('No se ha podido crear'));break}
   case 'pjoin':{const p=PLANS.find(x=>x.id===Number(v));if(!p)break;p.j=!p.j;p.n+=p.j?1:-1;render();send('/plans/'+p.id+'/join','POST').catch(()=>{p.j=!p.j;p.n+=p.j?1:-1;render()});break}
   case 'pdel':{send('/plans/'+Number(v),'DELETE').then(()=>{const i=PLANS.findIndex(x=>x.id===Number(v));if(i>=0)PLANS.splice(i,1);for(let j=PREM.length-1;j>=0;j--)if(PREM[j].i===100000+Number(v))PREM.splice(j,1);toast('Plan cancelado');render()}).catch(()=>toast('No se ha podido cancelar'));break}
   case 'modopen':{const [kind,k,h]=v.split(':');if(kind==='post'&&isNaN(Number(k))||!h||!/^[a-z0-9_.]{3,20}$/.test(h)){toast('Disponible en mensajes reales');break}S.mod={kind,k,h,step:''};S.sheet='mod';updateSheet();break}
@@ -1187,6 +1191,7 @@ document.addEventListener('input',e=>{const id=e.target.id;
  if(id==='q'){S.q=e.target.value;$('#results').innerHTML=results()}
  else if(FMAP[id])S.draft[FMAP[id]]=e.target.value
  else if(id==='f-post')S.pdraft.x=e.target.value
+ else if(id==='f-pl-title')S.plan.name=e.target.value
  else if(id==='f-pl-d')S.plan.date=e.target.value
  else if(id==='f-pl-t')S.plan.time=e.target.value
  else if(id==='f-pl-n')S.plan.note=e.target.value
@@ -1208,13 +1213,13 @@ function load(){
   SHOWS.length=0;[GMAP,STATS,FRIENDS].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));[PREM,POSTS,CLUBS,POLL,DIRS,CRIT,NEWS,PLANS].forEach(a=>a.length=0);REAL=true;
   (d.news||[]).forEach((n,i)=>{NEWS.push({nid:n.id,k:n.kind,t:n.title,x:n.body||'',id:n.title_id,img:n.image||'',p:n.platform||'',date:n.event_date||'',w:ago(n.published_at)});if(n.event_date)PREM.push({date:n.event_date,id:n.title_id,t:n.title,p:n.platform||'',i:i})});
   (d.critics||[]).forEach(c=>CRIT.push({n:c.display||c.handle,h:'@'+c.handle,u:c.handle,v:c.reviews,f:c.followers}));
-  (d.plans||[]).forEach(p=>PLANS.push({id:p.id,kind:p.kind,tid:p.title_id,date:p.date,time:p.time||'',note:p.note||'',host:p.display||p.handle,hh:p.handle,n:p.members,j:p.joined>0}));
+  (d.plans||[]).forEach(p=>PLANS.push({id:p.id,kind:p.kind,tid:p.title_id,name:p.title||'',date:p.date,time:p.time||'',note:p.note||'',host:p.display||p.handle,hh:p.handle,n:p.members,j:p.joined>0}));
   WEEKLY=d.weekly||[];S.me=d.me||null;
   d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({avg:t.avg,votes:t.votes,id:t.id,poster:t.poster,director:t.director,writers:t.writers,release:t.release_date,age:t.age,coll:(t.collections||'').split(',').map(x=>x.trim()).filter(Boolean),saga:t.saga||'',title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
   d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status==='En pausa'?'Viendo':l.status;s.ep=l.episode;s.review=l.review||'';try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
   d.posts.slice().reverse().forEach(p=>{if(POSTS.some(x=>x.k===p.id))return;const mine=p.liked>0;if(mine)S.liked.add(p.id);POSTS.unshift({k:p.id,u:p.handle,n:p.display,h:'@'+p.handle,t:ago(p.created_at),x:p.body,id:p.title_id,l:p.likes-(mine?1:0),c:p.comments||0,sp:!!p.spoiler})});
   d.titles.forEach(t=>{const s=byId(t.id);if(!s)return;s.fans=t.fans||0;if(t.fans>0)STATS[t.id]=[t.fans30||0,t.fans||0,t.avg?t.avg/20:0]});
-  PLANS.forEach(p=>{const t=byId(p.tid);if(t)PREM.push({date:p.date,id:p.tid,t:(p.kind==='quedada'?'Noche de peli: ':'Maratón: ')+t.title,p:'Sesión juntas'+(p.time?' · '+p.time:''),i:100000+p.id})});
+  PLANS.forEach(p=>{const t=byId(p.tid),nm=t?t.title:p.name;if(nm)PREM.push({date:p.date,id:t?p.tid:null,t:(p.kind==='quedada'?'Noche de peli: ':'Maratón: ')+nm,p:'Sesión juntas'+(p.time?' · '+p.time:''),i:100000+p.id})});
   const dm={};SHOWS.filter(s=>s.type==='Película'&&s.director).forEach(s=>String(s.director).split(/,| y /).map(x=>x.trim()).filter(Boolean).forEach(n=>{const o=dm[n]||(dm[n]={n,f:0,v:0});o.f++;o.v+=s.fans||0}));
   Object.values(dm).sort((a,b)=>b.v-a.v||b.f-a.f).slice(0,10).forEach(o=>DIRS.push(o));
   render();

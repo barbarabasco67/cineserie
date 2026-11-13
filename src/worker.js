@@ -31,6 +31,7 @@ function migrate(env) {
     migrated = (async () => {
       const steps = [
         'ALTER TABLE news ADD COLUMN image TEXT',
+        'ALTER TABLE plans ADD COLUMN title TEXT',
         "CREATE TABLE IF NOT EXISTS plan_msgs (id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER NOT NULL, user_id TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
         'CREATE TABLE IF NOT EXISTS blocks (blocker_id TEXT NOT NULL, blocked_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), PRIMARY KEY (blocker_id, blocked_id))',
         "CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, reporter_id TEXT NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL, reason TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
@@ -114,7 +115,7 @@ async function handleApi(request, env, url) {
        AND u.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = ?) AND u.id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = ?) GROUP BY u.id ORDER BY reviews DESC LIMIT 20`
     ).bind(uid, uid).all();
     const plans = await env.DB.prepare(
-      `SELECT p.id, p.kind, p.title_id, p.date, p.time, p.note, u.handle, u.display,
+      `SELECT p.id, p.kind, p.title_id, p.title, p.date, p.time, p.note, u.handle, u.display,
          (SELECT COUNT(*) FROM plan_members m WHERE m.plan_id = p.id) AS members,
          (SELECT COUNT(*) FROM plan_members m WHERE m.plan_id = p.id AND m.user_id = ?) AS joined
        FROM plans p JOIN users u ON u.id = p.user_id WHERE p.date >= date('now', '-1 day') AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = ?) AND p.user_id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = ?) ORDER BY p.date, p.time LIMIT 60`
@@ -294,11 +295,11 @@ async function handleApi(request, env, url) {
     const kind = b.kind === 'quedada' ? 'quedada' : 'maraton';
     const date = typeof b.date === 'string' && /^\d{4}-\d\d-\d\d$/.test(b.date) ? b.date : '';
     const time = typeof b.time === 'string' && /^\d\d:\d\d$/.test(b.time) ? b.time : '';
-    const tid = Number(b.title_id);
-    if (!date || !tid) return bad('faltan título o fecha');
-    const t = await env.DB.prepare('SELECT 1 AS x FROM titles WHERE id = ?').bind(tid).first();
-    if (!t) return bad('título no encontrado', 404);
-    const res = await env.DB.prepare('INSERT INTO plans (user_id, kind, title_id, date, time, note) VALUES (?, ?, ?, ?, ?, ?)').bind(uid, kind, tid, date, time, txt(b.note, 140)).run();
+    let tid = Number(b.title_id) || 0;
+    const name = txt(b.title, 80);
+    if (tid) { const t = await env.DB.prepare('SELECT title FROM titles WHERE id = ?').bind(tid).first(); if (!t) tid = 0; }
+    if (!date || (!tid && !name)) return bad('faltan título o fecha');
+    const res = await env.DB.prepare('INSERT INTO plans (user_id, kind, title_id, title, date, time, note) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(uid, kind, tid, name, date, time, txt(b.note, 140)).run();
     await env.DB.prepare('INSERT OR IGNORE INTO plan_members (plan_id, user_id) VALUES (?, ?)').bind(res.meta.last_row_id, uid).run();
     return json({ id: res.meta.last_row_id });
   }
