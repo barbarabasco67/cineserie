@@ -550,7 +550,7 @@ const POSTS=[
  {u:'Noelia',h:'@noe.cine',t:'Hace 3 h',x:'Opinión impopular: las comedias románticas de ahora son mejores que las de los 2000.',id:null,l:48,c:27}].map((p,i)=>({...p,k:'d'+i}));
 const CRIT=[{n:'Carla Montes',h:'@carla.montes',v:42,f:2310},{n:'Sandra Vela',h:'@sandra.vela',v:32,f:3120},{n:'Joana Rey',h:'@joana.rey',v:30,f:1890},{n:'Paula Nieto',h:'@paula.nieto',v:29,f:2650},{n:'Eva Llorente',h:'@eva.llorente',v:28,f:1420}];
 const PLACES={
- cine:{n:'Sala de cine',sub:'Películas',d:'Taquilla, pasillos y directoras',live:'312 en sala ahora',tabs:[['taquilla','Taquilla'],['pasillos','Pasillos'],['dir','Directoras']]},
+ cine:{n:'Sala de cine',sub:'Películas',d:'Taquilla, pasillos y directores',live:'312 en sala ahora',tabs:[['taquilla','Taquilla'],['pasillos','Pasillos'],['dir','Directores']]},
  casa:{n:'Salón de casa',sub:'Series',d:'Sofá, maratones y reacciones sin spoilers',live:'3 maratones esta semana',tabs:[['sofa','Sofá'],['pasillos','Pasillos'],['mar','Maratones'],['spoil','Sin spoilers']]},
  cafe:{n:'Cafetería',sub:'Charla',d:'Comenta, queda y descubre voces',live:'87 conversando',tabs:[['charla','Charla'],['quedadas','Quedadas'],['crit','Críticas']]}};
 const AVCOL=['#e8a56a','#8fc1f0','#e8c98f','#b8dcae','#f08fa5'];
@@ -819,12 +819,14 @@ const fmt=n=>n.toLocaleString('es-ES');
 function ticketList(type){
  const m=S.rank==='mes'?0:1;
  const l=SHOWS.filter(s=>s.type===type&&STATS[s.id]).sort((a,b)=>STATS[b.id][m]-STATS[a.id][m]).slice(0,6);
- const gems=SHOWS.filter(s=>s.type===type&&STATS[s.id]&&STATS[s.id][1]<3000&&STATS[s.id][2]>=4.4);
+ let gems=SHOWS.filter(s=>s.type===type&&STATS[s.id]&&STATS[s.id][1]<3000&&STATS[s.id][2]>=4.4);
+ if(REAL){const r=SHOWS.filter(s=>s.type===type&&STATS[s.id]&&STATS[s.id][2]>0);const f=r.map(s=>STATS[s.id][1]).sort((a,b)=>a-b),med=f.length?f[Math.floor(f.length/2)]:0;gems=r.filter(s=>STATS[s.id][2]>=3.75&&STATS[s.id][1]<=med)}
+ if(!l.length)return EMPTY('Todavía no hay datos. El ranking aparecerá cuando haya gente siguiendo y puntuando títulos.');
  const verb=type==='Serie'?'siguiendo':'espectadoras';
  return `<div class="seas"><h2>${type==='Serie'?'En el sofá':'Taquilla'}</h2><div class="wrap">${[['mes','Este mes'],['siempre','Siempre']].map(([k,n])=>`<button class="chip" aria-pressed="${S.rank===k}" data-act="rank" data-v="${k}">${n}</button>`).join('')}</div></div>
- ${l.map((s,i)=>`<button class="ticket" data-act="open" data-id="${s.id}"><span class="no">${i+1}</span>${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${fmt(STATS[s.id][m])} ${verb} · ${s.year}</span><span class="small" style="color:var(--soft)">★ ${STATS[s.id][2].toFixed(1).replace('.',',')}</span></span></button>`).join('')}
+ ${l.map((s,i)=>`<button class="ticket" data-act="open" data-id="${s.id}"><span class="no">${i+1}</span>${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${fmt(STATS[s.id][m])} ${STATS[s.id][m]===1?verb.replace(/s$/,''):verb} · ${s.year}</span><span class="small" style="color:var(--soft)">★ ${STATS[s.id][2].toFixed(1).replace('.',',')}</span></span></button>`).join('')}
  <div class="sec"><h2>Joyas escondidas</h2></div><p class="muted small" style="margin:-6px 0 8px">Pocas espectadoras y muy buenas notas.</p>
- <div class="card" style="padding:4px 16px">${gems.map(li).join('')}</div>`}
+ ${gems.length?`<div class="card" style="padding:4px 16px">${gems.map(li).join('')}</div>`:EMPTY('Aún no hay suficientes valoraciones para encontrar joyas.')}`}
 function pasillos(type){
  const gs=GENRES.map(g=>({...g,l:SHOWS.filter(s=>s.type===type&&(GMAP[s.id]||'').split(',').includes(g.k))})).filter(g=>g.l.length);
  const sel=gs.find(g=>g.k===S.genre);
@@ -854,8 +856,8 @@ function spoilers(){
  return `<div class="card"><p class="muted small" style="margin:0 0 6px">Reacciones a «${s1.title}». Vas por el episodio ${s1.ep}: el resto se desbloquea al verlo.</p>
  ${REACTIONS.map((r,i)=>{const ok=i<s1.ep;return `<div class="react ${ok?'':'locked'}"><span class="ep">${ok?i+1:ic('lock',14)}</span><span>${ok?`<b>${r[0]}</b><br>${r[1]}`:`<span class="muted">Ve el episodio ${i+1} para leerlo</span>`}</span></div>`}).join('')}</div>`}
 function directoras(){
- if(!DIRS.length)return EMPTY('Pronto: directoras del momento.');
- return `<div class="seas"><h2>Directoras del momento</h2></div>${DIRS.map((d,i)=>`<div class="ticket" style="cursor:default"><span class="no">${i+1}</span><span class="grow"><b>${d.n}</b><span class="muted small">${d.f} ${d.f>1?'películas':'película'} en la plataforma · ${fmt(d.v)} espectadoras</span></span></div>`).join('')}`}
+ if(!DIRS.length)return EMPTY('Aún no hay datos de directores. Aparecerán cuando haya películas con director y gente que las siga.');
+ return `<div class="seas"><h2>Directores del momento</h2></div>${DIRS.map((d,i)=>`<div class="ticket" style="cursor:default"><span class="no">${i+1}</span><span class="grow"><b>${d.n}</b><span class="muted small">${d.f} ${d.f>1?'películas':'película'} en la plataforma · ${fmt(d.v)} ${d.v===1?'seguidora':'seguidoras'}</span></span></div>`).join('')}`}
 function charla(){
  const s1=byId(1);
  return `${s1&&Object.keys(FRIENDS).length?`<div class="card"><span class="tag">En el mismo capítulo</span><p style="margin:10px 0 0">Lucía, Marta e Irene también van por el episodio ${s1.ep} de «${s1.title}».</p><div class="avatars" style="margin-top:10px">${Object.keys(FRIENDS).map(n=>`<span class="av" style="background:${AVC[n]}">${n[0]}</span>`).join('')}</div></div>`:''}
@@ -1171,6 +1173,9 @@ function load(){
   d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({avg:t.avg,votes:t.votes,id:t.id,poster:t.poster,director:t.director,writers:t.writers,release:t.release_date,age:t.age,coll:(t.collections||'').split(',').map(x=>x.trim()).filter(Boolean),saga:t.saga||'',title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
   d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status==='En pausa'?'Viendo':l.status;s.ep=l.episode;s.review=l.review||'';try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
   d.posts.slice().reverse().forEach(p=>{if(POSTS.some(x=>x.k===p.id))return;const mine=p.liked>0;if(mine)S.liked.add(p.id);POSTS.unshift({k:p.id,u:p.handle,n:p.display,h:'@'+p.handle,t:ago(p.created_at),x:p.body,id:p.title_id,l:p.likes-(mine?1:0),c:p.comments||0,sp:!!p.spoiler})});
+  d.titles.forEach(t=>{const s=byId(t.id);if(!s)return;s.fans=t.fans||0;if(t.fans>0)STATS[t.id]=[t.fans30||0,t.fans||0,t.avg?t.avg/20:0]});
+  const dm={};SHOWS.filter(s=>s.type==='Película'&&s.director).forEach(s=>String(s.director).split(/,| y /).map(x=>x.trim()).filter(Boolean).forEach(n=>{const o=dm[n]||(dm[n]={n,f:0,v:0});o.f++;o.v+=s.fans||0}));
+  Object.values(dm).sort((a,b)=>b.v-a.v||b.f-a.f).slice(0,10).forEach(o=>DIRS.push(o));
   render();
  }).catch(()=>{});
 }
