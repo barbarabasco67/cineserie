@@ -31,6 +31,14 @@ function migrate(env) {
     migrated = (async () => {
       const steps = [
         'ALTER TABLE news ADD COLUMN image TEXT',
+        'ALTER TABLE users ADD COLUMN email TEXT',
+        'ALTER TABLE users ADD COLUMN rec_hash TEXT',
+        'ALTER TABLE users ADD COLUMN rec_salt TEXT',
+        'ALTER TABLE users ADD COLUMN mail_hash TEXT',
+        'ALTER TABLE users ADD COLUMN mail_salt TEXT',
+        'ALTER TABLE users ADD COLUMN mail_exp INTEGER',
+        'ALTER TABLE users ADD COLUMN fails INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE users ADD COLUMN lock_until INTEGER NOT NULL DEFAULT 0',
         'ALTER TABLE plans ADD COLUMN title TEXT',
         "CREATE TABLE IF NOT EXISTS plan_msgs (id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER NOT NULL, user_id TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
         'CREATE TABLE IF NOT EXISTS blocks (blocker_id TEXT NOT NULL, blocked_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), PRIMARY KEY (blocker_id, blocked_id))',
@@ -61,13 +69,38 @@ function migrate(env) {
 }
 const HANDLE = /^[a-z0-9_.]{3,20}$/;
 async function meInfo(env, uid) {
-  const u = await env.DB.prepare('SELECT id, handle, display, bio, pass_hash, is_private, avatar, banner FROM users WHERE id = ?').bind(uid).first();
+  const u = await env.DB.prepare('SELECT id, handle, display, bio, pass_hash, is_private, avatar, banner, email, rec_hash FROM users WHERE id = ?').bind(uid).first();
   const f = await env.DB.prepare(
     `SELECT (SELECT COUNT(*) FROM follows WHERE followed_id = ?1 AND status = 'accepted') AS followers,
             (SELECT COUNT(*) FROM follows WHERE follower_id = ?1 AND status = 'accepted') AS following,
             (SELECT COUNT(*) FROM follows WHERE followed_id = ?1 AND status = 'pending') AS requests`
   ).bind(uid).first();
-  return { handle: u.handle, display: u.display || '', bio: u.bio || '', avatar: u.avatar || '', banner: u.banner || '', has_pass: !!u.pass_hash, is_private: !!u.is_private, followers: f.followers, following: f.following, requests: f.requests };
+  return { handle: u.handle, display: u.display || '', bio: u.bio || '', avatar: u.avatar || '', banner: u.banner || '', has_pass: !!u.pass_hash, email: u.email || '', has_recovery: !!u.rec_hash, mail_ready: mailReady(env), is_private: !!u.is_private, followers: f.followers, following: f.following, requests: f.requests };
+}
+
+const RECOVERY_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newRecoveryCode() {
+  const r = crypto.getRandomValues(new Uint8Array(12));
+  const c = Array.from(r, (x) => RECOVERY_ALPHA[x % RECOVERY_ALPHA.length]).join('');
+  return c.slice(0, 4) + '-' + c.slice(4, 8) + '-' + c.slice(8);
+}
+const normCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+async function setRecovery(env, uid) {
+  const code = newRecoveryCode();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  await env.DB.prepare('UPDATE users SET rec_hash = ?, rec_salt = ? WHERE id = ?').bind(await hashPw(normCode(code), salt), b64(salt), uid).run();
+  return code;
+}
+// Bloqueo por intentos: 5 fallos seguidos = 15 minutos sin poder probar.
+async function lockedOut(env, row) { return !!(row && row.lock_until && row.lock_until > Date.now()); }
+async function noteFail(env, id) {
+  await env.DB.prepare('UPDATE users SET fails = fails + 1, lock_until = CASE WHEN fails + 1 >= 5 THEN ? ELSE lock_until END WHERE id = ?').bind(Date.now() + 15 * 60000, id).run();
+  await env.DB.prepare('UPDATE users SET fails = 0 WHERE id = ? AND fails >= 5').bind(id).run();
+}
+const mailReady = (env) => !!(env.RESEND_API_KEY && env.MAIL_FROM);
+async function sendMail(env, to, subject, text) {
+  const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { authorization: 'Bearer ' + env.RESEND_API_KEY, 'content-type': 'application/json' }, body: JSON.stringify({ from: env.MAIL_FROM, to: [to], subject, text }) });
+  return r.ok;
 }
 
 async function readBody(request) {
@@ -79,9 +112,42 @@ async function handleApi(request, env, url) {
   if (url.pathname === '/api/login' && request.method === 'POST') {
     const b = await readBody(request);
     const h = txt(b && b.handle, 30).toLowerCase().replace(/^@/, '');
-    const row = await env.DB.prepare('SELECT id, pass_hash, pass_salt FROM users WHERE handle = ?').bind(h).first();
-    if (!row || !(await checkPw(row, b && b.password))) return bad('usuario o contraseña incorrectos', 401);
+    const row = await env.DB.prepare('SELECT id, pass_hash, pass_salt, lock_until FROM users WHERE handle = ?').bind(h).first();
+    if (await lockedOut(env, row)) return bad('Demasiados intentos. Prueba de nuevo en 15 minutos.', 429);
+    if (!row || !(await checkPw(row, b && b.password))) { if (row) await noteFail(env, row.id); return bad('usuario o contraseña incorrectos', 401); }
     return json({ uid: row.id });
+  }
+  if (url.pathname === '/api/reset-request' && request.method === 'POST') {
+    const b = await readBody(request);
+    const h = txt(b && b.handle, 30).toLowerCase().replace(/^@/, '');
+    const row = await env.DB.prepare('SELECT id, email, lock_until FROM users WHERE handle = ?').bind(h).first();
+    if (row && row.email && mailReady(env) && !(await lockedOut(env, row))) {
+      const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0');
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      await env.DB.prepare('UPDATE users SET mail_hash = ?, mail_salt = ?, mail_exp = ? WHERE id = ?').bind(await hashPw(code, salt), b64(salt), Date.now() + 15 * 60000, row.id).run();
+      await sendMail(env, row.email, 'Tu código para recuperar la cuenta', 'Tu código es ' + code + '. Caduca en 15 minutos. Si no lo has pedido tú, ignora este correo.');
+    }
+    return json({ ok: true });
+  }
+  if (url.pathname === '/api/reset' && request.method === 'POST') {
+    const b = await readBody(request);
+    const h = txt(b && b.handle, 30).toLowerCase().replace(/^@/, '');
+    const pw = b && typeof b.password === 'string' ? b.password : '';
+    if (pw.length < 8 || pw.length > 72) return bad('La contraseña debe tener entre 8 y 72 caracteres');
+    const row = await env.DB.prepare('SELECT id, rec_hash, rec_salt, mail_hash, mail_salt, mail_exp, lock_until FROM users WHERE handle = ?').bind(h).first();
+    if (await lockedOut(env, row)) return bad('Demasiados intentos. Prueba de nuevo en 15 minutos.', 429);
+    const code = normCode(b && b.code);
+    let how = '';
+    if (row && code) {
+      if (row.rec_hash && row.rec_salt && (await hashPw(code, unb64(row.rec_salt))) === row.rec_hash) how = 'rec';
+      else if (row.mail_hash && row.mail_exp > Date.now() && (await hashPw(code, unb64(row.mail_salt))) === row.mail_hash) how = 'mail';
+    }
+    if (!how) { if (row) await noteFail(env, row.id); return bad('El código no es correcto', 403); }
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    await env.DB.prepare('UPDATE users SET pass_hash = ?, pass_salt = ?, mail_hash = NULL, mail_exp = NULL, fails = 0, lock_until = 0 WHERE id = ?').bind(await hashPw(pw, salt), b64(salt), row.id).run();
+    const out = { uid: row.id };
+    if (how === 'rec') out.code = await setRecovery(env, row.id);
+    return json(out);
   }
   const uid = request.headers.get('x-uid') || '';
   if (!/^[0-9a-f-]{36}$/i.test(uid)) return bad('identificador no válido');
@@ -194,6 +260,21 @@ async function handleApi(request, env, url) {
     if (row && row.pass_hash && !(await checkPw(row, b.current))) return bad('La contraseña actual no es correcta', 403);
     const salt = crypto.getRandomValues(new Uint8Array(16));
     await env.DB.prepare('UPDATE users SET pass_hash = ?, pass_salt = ? WHERE id = ?').bind(await hashPw(pw, salt), b64(salt), uid).run();
+    return json({ ok: true });
+  }
+
+  if (path === '/recovery' && method === 'POST') {
+    const b = await readBody(request);
+    const row = await env.DB.prepare('SELECT pass_hash, pass_salt FROM users WHERE id = ?').bind(uid).first();
+    if (!row || !row.pass_hash) return bad('Primero crea una contraseña', 400);
+    if (!(await checkPw(row, b && b.current))) return bad('La contraseña no es correcta', 403);
+    return json({ code: await setRecovery(env, uid) });
+  }
+  if (path === '/email' && method === 'PUT') {
+    const b = await readBody(request);
+    const e = txt(b && b.email, 120).toLowerCase();
+    if (e && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) return bad('Correo no válido');
+    await env.DB.prepare('UPDATE users SET email = ? WHERE id = ?').bind(e || null, uid).run();
     return json({ ok: true });
   }
 

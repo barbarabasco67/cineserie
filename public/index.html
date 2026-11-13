@@ -572,7 +572,7 @@ const POLL=[2,6,7], FRIENDS={Lucía:2,Marta:6,Irene:6}, AVC={Lucía:'#f4a97b',Ma
 /* ---------- estado ---------- */
 const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix','Prime Video','Filmin']),
  filter:'Todas',mood:null,coll:null,mine:true,q:'',tonight:null,night:null,sheet:null,vote:null,owned:new Set(),
- dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,decoSel:null,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,reveal:new Set(),live:null,mod:null,blks:null,plan:null,cpost:null,cmts:null,pspoil:false,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
+ dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,decoSel:null,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,reveal:new Set(),reccode:'',live:null,mod:null,blks:null,plan:null,cpost:null,cmts:null,pspoil:false,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
 let REAL=false;
 const byId=id=>SHOWS.find(s=>s.id===id);
 const dd=(k,t,v,body)=>`<div class="dd"><button class="dd-h" aria-expanded="${S.dd===k}" data-act="dd" data-v="${k}"><span><b>${t}</b><small>${v}</small></span>${ic('chevron',16)}</button>${S.dd===k?`<div class="wrap dd-b">${body}</div>`:''}</div>`;
@@ -669,7 +669,8 @@ function ajustesView(){
  <div class="set-h">Cuenta</div><div class="card" style="padding:2px 16px">
  ${row('useropen','user','Perfil público','Nombre, usuario y presentación')}
  ${row('passopen','key',me.has_pass?'Cambiar contraseña':'Crear contraseña',me.has_pass?'Tu cuenta está protegida':'Para entrar desde otro móvil')}
- ${row('loginopen','login','Entrar con otra cuenta','Usa tu usuario y contraseña')}</div>
+ ${row('loginopen','login','Entrar con otra cuenta','Usa tu usuario y contraseña')}
+ ${row('recopen','lock','Recuperar la cuenta',me.has_recovery?'Tienes código de recuperación':'Código de recuperación y correo')}</div>
  <div class="set-h">Privacidad</div><div class="card" style="padding:2px 16px"><button class="switch" role="switch" aria-checked="${!!me.is_private}" data-act="privtoggle" style="margin:14px 0"><span><b>Perfil privado</b><br><span class="muted small" style="font-weight:600">Solo te ven quienes aceptes</span></span><span class="tr"></span></button>
  ${row('blkopen','lock','Usuarias bloqueadas','Gestiona a quién has bloqueado')}
  ${me.is_private||me.requests?row('reqopen','people','Solicitudes de seguimiento',me.requests?me.requests+' pendientes':'No tienes ninguna pendiente'):''}</div>
@@ -702,12 +703,35 @@ function passHTML(){const me=ME();
  <label class="fld"><span>Contraseña nueva (mínimo 8)</span><input id="p-new" type="password" autocomplete="new-password"></label>
  <label class="fld"><span>Repítela</span><input id="p-new2" type="password" autocomplete="new-password"></label>
  <div style="margin-top:18px"><button class="btn block" data-act="passsave">Guardar contraseña</button></div>`}
+function recHTML(){const me=ME();
+ return `<div class="sheet-head"><div class="grow"><h2>Recuperar la cuenta</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ ${me.has_pass?'':'<p class="muted small" style="margin:8px 0 0">Primero crea una contraseña en Ajustes. Después podrás añadir un correo y un código de recuperación.</p>'}
+ <label class="fld"><span>Correo (opcional)</span><input id="r-email" type="email" autocomplete="email" placeholder="tu@correo.com" value="${esc(me.email||'')}"></label>
+ <p class="muted small" style="margin:6px 0 0">${me.mail_ready?'Si olvidas la contraseña, te enviaremos un código a este correo.':'Guárdalo ya: el envío de códigos por correo se activará pronto.'}</p>
+ <button class="btn ghost block" style="margin-top:10px" data-act="emailsave">Guardar correo</button>
+ <h3 style="margin-top:22px">Código de recuperación</h3>
+ <p class="muted small" style="margin:4px 0 0">Un código personal que sirve para entrar si olvidas la contraseña. Guárdalo en un sitio seguro: solo se muestra una vez, y si generas otro, el anterior deja de valer.</p>
+ ${S.reccode?`<div class="card" style="margin-top:12px;text-align:center"><b style="font:700 24px var(--ft);letter-spacing:.08em">${esc(S.reccode)}</b><p class="muted small" style="margin:8px 0 0">Apúntalo o haz una captura. No volverá a mostrarse.</p></div>`:''}
+ ${me.has_pass?`<label class="fld"><span>Tu contraseña actual</span><input id="r-cur" type="password" autocomplete="current-password"></label><button class="btn block" style="margin-top:10px" data-act="recgen">${me.has_recovery?'Generar un código nuevo':'Generar mi código'}</button>`:''}`}
+function forgotHTML(){const me=ME();
+ return `<div class="sheet-head"><div class="grow"><h2>He olvidado mi contraseña</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ <p class="muted small" style="margin:8px 0 0">Escribe tu usuario y tu código de recuperación${me.mail_ready?' (o el código que te llegue al correo)':''}, y elige una contraseña nueva.</p>
+ <label class="fld"><span>Nombre de usuario</span><input id="f-h" autocomplete="username" autocapitalize="none"></label>
+ ${me.mail_ready?'<button class="btn ghost block" style="margin-top:10px" data-act="mailcode">Enviarme un código por correo</button>':''}
+ <label class="fld"><span>Código</span><input id="f-c" autocapitalize="characters" autocomplete="off" placeholder="XXXX-XXXX-XXXX"></label>
+ <label class="fld"><span>Contraseña nueva (mínimo 8)</span><input id="f-p" type="password" autocomplete="new-password"></label>
+ <div style="margin-top:18px"><button class="btn block" data-act="forgotsave">Cambiar contraseña y entrar</button></div>`}
+function recDoneHTML(){
+ return `<div class="sheet-head"><div class="grow"><h2>Contraseña cambiada</h2></div></div>
+ <p class="muted small" style="margin:8px 0 0">Tu código de recuperación anterior ya se ha usado. Este es el nuevo; guárdalo ahora porque no volverá a mostrarse.</p>
+ <div class="card" style="margin-top:12px;text-align:center"><b style="font:700 24px var(--ft);letter-spacing:.08em">${esc(S.reccode)}</b></div>
+ <button class="btn block" style="margin-top:16px" data-act="recfinish">Ya lo he guardado</button>`}
 function loginHTML(){
  return `<div class="sheet-head"><div class="grow"><h2>Entrar con otra cuenta</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  <p class="muted small" style="margin:8px 0 0">Esto cambia este móvil a esa cuenta. Lo que haya en este móvil sin contraseña dejará de verse.</p>
  <label class="fld"><span>Nombre de usuario</span><input id="l-handle" autocomplete="username" autocapitalize="none"></label>
  <label class="fld"><span>Contraseña</span><input id="l-pass" type="password" autocomplete="current-password"></label>
- <div style="margin-top:18px"><button class="btn block" data-act="loginsave">Entrar</button></div>`}
+ <div style="margin-top:18px"><button class="btn block" data-act="loginsave">Entrar</button><button class="btn ghost block" style="margin-top:10px" data-act="forgotopen">He olvidado mi contraseña</button></div>`}
 const TABS=[['inicio','Inicio','home'],['videoclub','Videoclub','clapper'],['descubrir','Descubrir','compass'],['comunidad','Comunidad','people'],['perfil','Perfil','user']];
 
 /* ---------- piezas ---------- */
@@ -1001,7 +1025,7 @@ function updateTabs(){const t=$('#tabs');if(!t.dataset.ready){t.innerHTML='<i cl
  [...t.querySelectorAll('button')].forEach((b,i)=>{const on=TABS[i][0]===S.tab;if(on&&b.getAttribute('aria-current')!=='page'){b.setAttribute('aria-current','page');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');t.style.setProperty('--i',i)}else if(!on)b.removeAttribute('aria-current')})}
 function updateSheet(){
  const sh=$('#sheet'),top=sh.scrollTop,was=sh.classList.contains('on');
- if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='comments'?commentsHTML():S.sheet==='plan'?planHTML():S.sheet==='live'?liveHTML():S.sheet==='mod'?modHTML():S.sheet==='blocks'?blocksHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
+ if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='comments'?commentsHTML():S.sheet==='plan'?planHTML():S.sheet==='live'?liveHTML():S.sheet==='rec'?recHTML():S.sheet==='forgot'?forgotHTML():S.sheet==='recdone'?recDoneHTML():S.sheet==='mod'?modHTML():S.sheet==='blocks'?blocksHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
  if(!was&&S.sheet!==null){sh.classList.add('fresh');setTimeout(()=>sh.classList.remove('fresh'),800)}
  sh.classList.toggle('on',S.sheet!==null);$('#backdrop').classList.toggle('on',S.sheet!==null);
 }
@@ -1133,6 +1157,13 @@ document.addEventListener('click',e=>{
   case 'liveopen':{const id=Number(v);S.live={id,msgs:[],last:0};S.sheet='live';updateSheet();liveFetch();clearInterval(liveTimer);liveTimer=setInterval(liveFetch,4000);break}
   case 'liveclose':clearInterval(liveTimer);liveTimer=null;S.live=null;S.sheet=null;updateSheet();break;
   case 'livesend':{const inp=$('#f-lv'),x=(inp&&inp.value||'').trim();if(!x||!S.live)break;inp.value='';send('/plans/'+S.live.id+'/chat','POST',{body:x}).then(()=>liveFetch()).catch(()=>toast('No se ha podido enviar'));break}
+  case 'recopen':S.reccode='';S.sheet='rec';updateSheet();break;
+  case 'forgotopen':S.sheet='forgot';updateSheet();break;
+  case 'emailsave':{const e=($('#r-email').value||'').trim();send('/email','PUT',{email:e}).then(()=>{S.me={...S.me,email:e};toast(e?'Correo guardado':'Correo quitado')}).catch(()=>toast('Correo no válido'));break}
+  case 'recgen':{const c=$('#r-cur');if(!c||!c.value){toast('Escribe tu contraseña actual');break}send('/recovery','POST',{current:c.value}).then(r=>{S.reccode=r.code;S.me={...S.me,has_recovery:true};updateSheet()}).catch(()=>toast('La contraseña no es correcta'));break}
+  case 'mailcode':{const h=($('#f-h').value||'').trim();if(!h){toast('Escribe tu usuario');break}send('/reset-request','POST',{handle:h}).then(()=>toast('Si el usuario tiene correo, le hemos enviado un código')).catch(()=>toast('No se ha podido enviar'));break}
+  case 'forgotsave':{const h=($('#f-h').value||'').trim(),c=($('#f-c').value||'').trim(),n=$('#f-p').value;if(!h||!c){toast('Escribe usuario y código');break}if(n.length<8){toast('La contraseña necesita 8 caracteres');break}send('/reset','POST',{handle:h,code:c,password:n}).then(r=>{try{localStorage.setItem('cs_uid',r.uid)}catch(_){}if(r.code){S.reccode=r.code;S.sheet='recdone';updateSheet()}else location.reload()}).catch(()=>toast('El código no es correcto o hay demasiados intentos'));break}
+  case 'recfinish':S.reccode='';location.reload();break;
   case 'reveal':S.reveal.add(isNaN(Number(v))?v:Number(v));render();break;
   case 'pspoil':S.pspoil=!S.pspoil;updateSheet();break;
   case 'comments':{const k=isNaN(Number(v))?v:Number(v);const p=[...POSTS,...(typeof PROFPOSTS!=='undefined'?PROFPOSTS:[])].find(x=>x.k===k)||POSTS.find(x=>String(x.k)===String(k))||{k,u:'',n:'',x:'',c:0};if(typeof k!=='number'){toast('Los comentarios están disponibles en mensajes reales');break}S.cpost=p;S.cmts=null;S.sheet='comments';updateSheet();send('/posts/'+k+'/comments').then(r=>{S.cmts=r.comments||[];if(S.sheet==='comments'){const keep=($('#f-cm')||{}).value||'';updateSheet();if($('#f-cm'))$('#f-cm').value=keep}}).catch(()=>{S.cmts=[];updateSheet()});break}
