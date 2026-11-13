@@ -105,3 +105,19 @@ CREATE TABLE IF NOT EXISTS post_comments (
   body TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS plans (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  title_id INTEGER NOT NULL,
+  date TEXT NOT NULL,
+  time TEXT,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS plan_members (
+  plan_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
+  PRIMARY KEY (plan_id, user_id)
+);

@@ -542,6 +542,7 @@ const GENRES=[{k:'Comedia romántica',i:'heart'},{k:'Drama',i:'drop'},{k:'Cozy',
 const GMAP={1:'Misterio',2:'Comedia',3:'Cozy',4:'Drama',5:'Misterio',6:'Comedia romántica',7:'Drama',8:'Fantasía',9:'Drama',10:'Comedia romántica',11:'Comedia romántica',12:'Comedia',13:'Slow cinema',14:'Drama',15:'Cozy',16:'Comedia',17:'Drama',18:'Fantasía',19:'Comedia romántica',20:'Slow cinema'};
 const DIRS=[{n:'Clara Beltrán',f:3,v:4120},{n:'Irene Solís',f:2,v:2890},{n:'Marta Ochoa',f:2,v:2210},{n:'Noa Valdés',f:1,v:1480}];
 const CLUBS=[{id:3,t:'Releemos el final de «Hasta que cierre el café»',w:'Domingo 22 nov · 18:00',n:62,p:'Episodio 12'},{id:1,t:'Maratón de «Cartas desde el faro»',w:'Viernes 20 nov · 21:00',n:48,p:'Episodios 5 a 7'},{id:6,t:'«Mi vecino el fiscal» antes de que se vaya',w:'Sábado 28 nov · 20:30',n:31,p:'Episodios 1 a 4'}];
+const PLANS=[];
 const POSTS=[
  {u:'Lucía',h:'@lucia.ve',t:'Hace 5 min',x:'No he visto casi nada sobre esta serie y me extraña, porque tiene una pinta buenísima. ¿Alguien la ha visto?',id:8,l:12,c:3},
  {u:'Marta',h:'@marta.pantalla',t:'Hace 20 min',x:'Final de temporada de «Cartas desde el faro»: necesito hablar de esa última carta. Sin spoilers, solo diré que lloré en la cocina.',id:1,l:34,c:9},
@@ -566,7 +567,7 @@ const POLL=[2,6,7], FRIENDS={Lucía:2,Marta:6,Irene:6}, AVC={Lucía:'#f4a97b',Ma
 /* ---------- estado ---------- */
 const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix','Prime Video','Filmin']),
  filter:'Todas',mood:null,coll:null,mine:true,q:'',tonight:null,night:null,sheet:null,vote:null,owned:new Set(),
- dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,decoSel:null,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,reveal:new Set(),cpost:null,cmts:null,pspoil:false,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
+ dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,decoSel:null,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,reveal:new Set(),plan:null,cpost:null,cmts:null,pspoil:false,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
 let REAL=false;
 const byId=id=>SHOWS.find(s=>s.id===id);
 const dd=(k,t,v,body)=>`<div class="dd"><button class="dd-h" aria-expanded="${S.dd===k}" data-act="dd" data-v="${k}"><span><b>${t}</b><small>${v}</small></span>${ic('chevron',16)}</button>${S.dd===k?`<div class="wrap dd-b">${body}</div>`:''}</div>`;
@@ -830,7 +831,21 @@ function pasillos(type){
  return `<div class="gen">${gs.map(g=>`<button class="gcell" aria-pressed="${S.genre===g.k}" data-act="genre" data-v="${g.k}">${ic(g.i,26)}<b>${g.k}</b><span class="muted small">${g.l.length} ${g.l.length>1?'títulos':'título'}</span></button>`).join('')}</div>
  ${sel?`<h3>${sel.k}</h3><div class="card" style="padding:4px 16px">${sel.l.map(li).join('')}</div>`:'<p class="muted small" style="margin-top:14px">Elige un pasillo para ver sus títulos.</p>'}`}
 const EMPTY=m=>`<div class="card"><p class="muted small" style="margin:0">${m}</p></div>`;
+const planKindName=k=>k==='quedada'?'quedada':'maratón';
+function planList(kind){
+ const l=PLANS.filter(p=>p.kind===kind);
+ const head=`<button class="btn block" style="margin:0 0 14px" data-act="planopen" data-v="${kind}">${ic('plus',18)}${kind==='quedada'?'Organizar una quedada':'Organizar un maratón'}</button>`;
+ if(!l.length)return head+EMPTY(kind==='quedada'?'Aún no hay quedadas. Organiza la primera: elige peli, día y hora.':'Aún no hay maratones. Organiza el primero y que se apunten las demás.');
+ return head+l.map(p=>{const s=byId(p.tid),me=ME().handle===p.hh;return `<div class="card"><span class="tag">${dlabel(p.date)}${p.time?' · '+p.time:''}</span><h2 style="font-size:18px;margin:10px 0 4px">${s?esc(s.title):'Título'}</h2><p class="muted small" style="margin:0">Organiza <button class="ulink" data-act="user" data-v="${esc(p.hh)}" style="display:inline">${esc(p.host)}</button> · ${p.n} ${p.n===1?'apuntada':'apuntadas'}</p>${p.note?`<p style="margin:8px 0 0">${esc(p.note)}</p>`:''}<div class="wrap" style="margin-top:12px"><button class="btn ${p.j?'ghost':''}" data-act="pjoin" data-v="${p.id}" aria-pressed="${p.j}">${p.j?ic('check',18)+'Apuntada':'Apuntarme'}</button>${s?`<button class="btn ghost" data-act="open" data-id="${s.id}">Ver ficha</button>`:''}${me?`<button class="btn ghost" data-act="pdel" data-v="${p.id}">Cancelar</button>`:''}</div></div>`}).join('')}
+function planHTML(){const d=S.plan||{};
+ return `<div class="sheet-head"><div class="grow"><h2>${d.kind==='quedada'?'Organizar una quedada':'Organizar un maratón'}</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ <label class="fld"><span>Título</span><select id="f-pl-id"><option value="">Elige uno</option>${SHOWS.map(s=>`<option value="${s.id}" ${String(d.id)===String(s.id)?'selected':''}>${esc(s.title)}</option>`).join('')}</select></label>
+ <label class="fld"><span>Día</span><input id="f-pl-d" type="date" min="${TODAYISO}" value="${esc(d.date||'')}"></label>
+ <label class="fld"><span>Hora (opcional)</span><input id="f-pl-t" type="time" value="${esc(d.time||'')}"></label>
+ <label class="fld"><span>Nota (opcional)</span><input id="f-pl-n" maxlength="140" placeholder="Por ejemplo: traed manta y palomitas" value="${esc(d.note||'')}"></label>
+ <button class="btn block" style="margin-top:16px" data-act="plansave">Crear</button>`}
 function maratones(){
+ if(REAL)return planList('maraton');
  if(!CLUBS.length)return EMPTY('Aún no hay maratones. Pronto podrás organizar la primera.');
  return CLUBS.map((c,i)=>{const j=S.joined.has(i);return `<div class="card"><span class="tag">${c.w}</span><h2 style="font-size:18px;margin:10px 0 4px">${c.t}</h2><p class="muted small" style="margin:0">${c.p} · ${c.n+(j?1:0)} apuntadas</p><div class="wrap" style="margin-top:12px"><button class="btn ${j?'ghost':''}" data-act="join" data-v="${i}" aria-pressed="${j}">${j?ic('check',18)+'Apuntada':'Apuntarme'}</button><button class="btn ghost" data-act="open" data-id="${c.id}">Ver ficha</button></div></div>`}).join('')}
 function spoilers(){
@@ -847,6 +862,7 @@ function charla(){
  <button class="btn block" style="margin:14px 0" data-act="postopen">${ic('plus',18)}Escribir en la charla</button>
  ${POSTS.map(postCard).join('')}`}
 function quedadas(){
+ if(REAL)return planList('quedada');
  if(!POLL.length)return EMPTY('Aún no hay noches de peli. Cuando haya una, podrás votar con tus amigas.');
  const tot=Object.values(FRIENDS).length+(S.vote?1:0);
  const cnt=id=>Object.values(FRIENDS).filter(v=>v===id).length+(S.vote===id?1:0);
@@ -950,7 +966,7 @@ function updateTabs(){const t=$('#tabs');if(!t.dataset.ready){t.innerHTML='<i cl
  [...t.querySelectorAll('button')].forEach((b,i)=>{const on=TABS[i][0]===S.tab;if(on&&b.getAttribute('aria-current')!=='page'){b.setAttribute('aria-current','page');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');t.style.setProperty('--i',i)}else if(!on)b.removeAttribute('aria-current')})}
 function updateSheet(){
  const sh=$('#sheet'),top=sh.scrollTop,was=sh.classList.contains('on');
- if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='comments'?commentsHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
+ if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='comments'?commentsHTML():S.sheet==='plan'?planHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
  if(!was&&S.sheet!==null){sh.classList.add('fresh');setTimeout(()=>sh.classList.remove('fresh'),800)}
  sh.classList.toggle('on',S.sheet!==null);$('#backdrop').classList.toggle('on',S.sheet!==null);
 }
@@ -1068,6 +1084,10 @@ document.addEventListener('click',e=>{
   case 'rev':S.rev=v;render();break;
   case 'join':{const i=Number(v);if(S.joined.has(i))S.joined.delete(i);else{S.joined.add(i);toast('Te apuntamos a la maratón')}render();break}
   case 'like':{const k=isNaN(Number(v))?v:Number(v);S.liked.has(k)?S.liked.delete(k):S.liked.add(k);if(typeof k==='number')send('/posts/'+k+'/like','POST').catch(()=>{});render();break}
+  case 'planopen':S.plan={kind:v,id:'',date:'',time:'',note:''};S.sheet='plan';updateSheet();break;
+  case 'plansave':{const d=S.plan;if(!d.id||!d.date){toast('Elige título y día');break}send('/plans','POST',{kind:d.kind,title_id:Number(d.id),date:d.date,time:d.time,note:d.note}).then(()=>{S.sheet=null;toast('Plan creado');load()}).catch(()=>toast('No se ha podido crear'));break}
+  case 'pjoin':{const p=PLANS.find(x=>x.id===Number(v));if(!p)break;p.j=!p.j;p.n+=p.j?1:-1;render();send('/plans/'+p.id+'/join','POST').catch(()=>{p.j=!p.j;p.n+=p.j?1:-1;render()});break}
+  case 'pdel':{send('/plans/'+Number(v),'DELETE').then(()=>{const i=PLANS.findIndex(x=>x.id===Number(v));if(i>=0)PLANS.splice(i,1);toast('Plan cancelado');render()}).catch(()=>toast('No se ha podido cancelar'));break}
   case 'reveal':S.reveal.add(isNaN(Number(v))?v:Number(v));render();break;
   case 'pspoil':S.pspoil=!S.pspoil;updateSheet();break;
   case 'comments':{const k=isNaN(Number(v))?v:Number(v);const p=[...POSTS,...(typeof PROFPOSTS!=='undefined'?PROFPOSTS:[])].find(x=>x.k===k)||POSTS.find(x=>String(x.k)===String(k))||{k,u:'',n:'',x:'',c:0};if(typeof k!=='number'){toast('Los comentarios están disponibles en mensajes reales');break}S.cpost=p;S.cmts=null;S.sheet='comments';updateSheet();send('/posts/'+k+'/comments').then(r=>{S.cmts=r.comments||[];if(S.sheet==='comments'){const keep=($('#f-cm')||{}).value||'';updateSheet();if($('#f-cm'))$('#f-cm').value=keep}}).catch(()=>{S.cmts=[];updateSheet()});break}
@@ -1126,8 +1146,11 @@ document.addEventListener('input',e=>{const id=e.target.id;
  if(id==='q'){S.q=e.target.value;$('#results').innerHTML=results()}
  else if(FMAP[id])S.draft[FMAP[id]]=e.target.value
  else if(id==='f-post')S.pdraft.x=e.target.value
+ else if(id==='f-pl-d')S.plan.date=e.target.value
+ else if(id==='f-pl-t')S.plan.time=e.target.value
+ else if(id==='f-pl-n')S.plan.note=e.target.value
  else if(id==='f-pt')S.pdraft.id=e.target.value});
-document.addEventListener('change',e=>{if(e.target.id==='f-pt')S.pdraft.id=e.target.value});
+document.addEventListener('change',e=>{if(e.target.id==='f-pt')S.pdraft.id=e.target.value;if(e.target.id==='f-pl-id'&&S.plan)S.plan.id=e.target.value;if(e.target.id==='f-pl-d'&&S.plan)S.plan.date=e.target.value;if(e.target.id==='f-pl-t'&&S.plan)S.plan.time=e.target.value});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='f-cm'){e.preventDefault();const b=document.querySelector('[data-act=cmsend]');b&&b.click();return}if(e.key==='Escape'&&S.sheet!==null){S.sheet=null;updateSheet()}});
 function fromHash(){const h=(location.hash||'').slice(1);if(VIEWS[h]&&h!==S.tab){S.tab=h;render(true)}}
 window.addEventListener('hashchange',fromHash);
@@ -1140,9 +1163,10 @@ function syncLib(s){if(s.status)send('/library/'+s.id,'PUT',{status:s.status,epi
 const ago=d=>{const m=Math.max(0,Math.round((Date.now()-new Date(d.replace(' ','T')+'Z'))/60000));return m<2?'Ahora':m<60?`Hace ${m} min`:m<1440?`Hace ${Math.round(m/60)} h`:`Hace ${Math.round(m/1440)} d`};
 function load(){
  send('/state').then(d=>{
-  SHOWS.length=0;[GMAP,STATS,FRIENDS].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));[PREM,POSTS,CLUBS,POLL,DIRS,CRIT,NEWS].forEach(a=>a.length=0);REAL=true;
+  SHOWS.length=0;[GMAP,STATS,FRIENDS].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));[PREM,POSTS,CLUBS,POLL,DIRS,CRIT,NEWS,PLANS].forEach(a=>a.length=0);REAL=true;
   (d.news||[]).forEach((n,i)=>{NEWS.push({nid:n.id,k:n.kind,t:n.title,x:n.body||'',id:n.title_id,img:n.image||'',p:n.platform||'',date:n.event_date||'',w:ago(n.published_at)});if(n.event_date)PREM.push({date:n.event_date,id:n.title_id,t:n.title,p:n.platform||'',i:i})});
   (d.critics||[]).forEach(c=>CRIT.push({n:c.display||c.handle,h:'@'+c.handle,u:c.handle,v:c.reviews,f:c.followers}));
+  (d.plans||[]).forEach(p=>PLANS.push({id:p.id,kind:p.kind,tid:p.title_id,date:p.date,time:p.time||'',note:p.note||'',host:p.display||p.handle,hh:p.handle,n:p.members,j:p.joined>0}));
   WEEKLY=d.weekly||[];S.me=d.me||null;
   d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({avg:t.avg,votes:t.votes,id:t.id,poster:t.poster,director:t.director,writers:t.writers,release:t.release_date,age:t.age,coll:(t.collections||'').split(',').map(x=>x.trim()).filter(Boolean),saga:t.saga||'',title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
   d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status==='En pausa'?'Viendo':l.status;s.ep=l.episode;s.review=l.review||'';try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});

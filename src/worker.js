@@ -31,6 +31,8 @@ function migrate(env) {
     migrated = (async () => {
       const steps = [
         'ALTER TABLE news ADD COLUMN image TEXT',
+        "CREATE TABLE IF NOT EXISTS plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, kind TEXT NOT NULL, title_id INTEGER NOT NULL, date TEXT NOT NULL, time TEXT, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+        'CREATE TABLE IF NOT EXISTS plan_members (plan_id INTEGER NOT NULL, user_id TEXT NOT NULL, PRIMARY KEY (plan_id, user_id))',
         'ALTER TABLE posts ADD COLUMN spoiler INTEGER NOT NULL DEFAULT 0',
         "CREATE TABLE IF NOT EXISTS post_comments (id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER NOT NULL, user_id TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
         'ALTER TABLE users ADD COLUMN display TEXT',
@@ -108,9 +110,15 @@ async function handleApi(request, env, url) {
        WHERE l.review IS NOT NULL AND l.review <> '' AND u.is_private = 0 AND l.updated_at >= datetime('now', '-30 days')
        GROUP BY u.id ORDER BY reviews DESC LIMIT 20`
     ).all();
+    const plans = await env.DB.prepare(
+      `SELECT p.id, p.kind, p.title_id, p.date, p.time, p.note, u.handle, u.display,
+         (SELECT COUNT(*) FROM plan_members m WHERE m.plan_id = p.id) AS members,
+         (SELECT COUNT(*) FROM plan_members m WHERE m.plan_id = p.id AND m.user_id = ?) AS joined
+       FROM plans p JOIN users u ON u.id = p.user_id WHERE p.date >= date('now', '-1 day') ORDER BY p.date, p.time LIMIT 60`
+    ).bind(uid).all();
     const news = await env.DB.prepare('SELECT id, kind, title, body, title_id, event_date, platform, image, published_at FROM news ORDER BY published_at DESC, id DESC LIMIT 40').all();
     const me = await meInfo(env, uid);
-    return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results, news: news.results, critics: critics.results });
+    return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results, news: news.results, critics: critics.results, plans: plans.results });
   }
 
   if (path === '/titles' && method === 'POST') {
@@ -275,6 +283,38 @@ async function handleApi(request, env, url) {
       const res = await env.DB.prepare('INSERT INTO posts (user_id, body, title_id, spoiler) VALUES (?, ?, ?, ?)').bind(uid, body, titleId, b.spoiler ? 1 : 0).run();
       return json({ id: res.meta.last_row_id });
     } catch { return bad('título no encontrado', 404); }
+  }
+
+  if (path === '/plans' && method === 'POST') {
+    const b = await readBody(request);
+    if (!b) return bad('cuerpo no válido');
+    const kind = b.kind === 'quedada' ? 'quedada' : 'maraton';
+    const date = typeof b.date === 'string' && /^\d{4}-\d\d-\d\d$/.test(b.date) ? b.date : '';
+    const time = typeof b.time === 'string' && /^\d\d:\d\d$/.test(b.time) ? b.time : '';
+    const tid = Number(b.title_id);
+    if (!date || !tid) return bad('faltan título o fecha');
+    const t = await env.DB.prepare('SELECT 1 AS x FROM titles WHERE id = ?').bind(tid).first();
+    if (!t) return bad('título no encontrado', 404);
+    const res = await env.DB.prepare('INSERT INTO plans (user_id, kind, title_id, date, time, note) VALUES (?, ?, ?, ?, ?, ?)').bind(uid, kind, tid, date, time, txt(b.note, 140)).run();
+    await env.DB.prepare('INSERT OR IGNORE INTO plan_members (plan_id, user_id) VALUES (?, ?)').bind(res.meta.last_row_id, uid).run();
+    return json({ id: res.meta.last_row_id });
+  }
+  m = path.match(/^\/plans\/(\d+)\/join$/);
+  if (m && method === 'POST') {
+    const id = Number(m[1]);
+    const ok = await env.DB.prepare('SELECT 1 AS x FROM plans WHERE id = ?').bind(id).first();
+    if (!ok) return bad('plan no encontrado', 404);
+    const had = await env.DB.prepare('SELECT 1 AS x FROM plan_members WHERE plan_id = ? AND user_id = ?').bind(id, uid).first();
+    if (had) await env.DB.prepare('DELETE FROM plan_members WHERE plan_id = ? AND user_id = ?').bind(id, uid).run();
+    else await env.DB.prepare('INSERT INTO plan_members (plan_id, user_id) VALUES (?, ?)').bind(id, uid).run();
+    return json({ joined: !had });
+  }
+  m = path.match(/^\/plans\/(\d+)$/);
+  if (m && method === 'DELETE') {
+    const id = Number(m[1]);
+    const r = await env.DB.prepare('DELETE FROM plans WHERE id = ? AND user_id = ?').bind(id, uid).run();
+    if (r.meta.changes) await env.DB.prepare('DELETE FROM plan_members WHERE plan_id = ?').bind(id).run();
+    return json({ ok: true });
   }
 
   m = path.match(/^\/posts\/(\d+)\/comments$/);
