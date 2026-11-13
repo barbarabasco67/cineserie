@@ -26,7 +26,7 @@ async function handleApi(request, env, url) {
 
   if (path === '/state' && method === 'GET') {
     const titles = await env.DB.prepare(
-      "SELECT id, title, type, year, episodes, minutes, synopsis, genre, hue, platforms, tags, poster, source, review_status FROM titles WHERE (owner_id = ? OR review_status = 'approved')"
+      "SELECT id, title, type, year, episodes, minutes, synopsis, genre, hue, platforms, tags, poster, director, writers, release_date, age, source, review_status FROM titles WHERE (owner_id = ? OR review_status = 'approved')"
     ).bind(uid).all();
     const library = await env.DB.prepare('SELECT title_id, status, episode, ratings FROM library WHERE user_id = ?').bind(uid).all();
     const posts = await env.DB.prepare(
