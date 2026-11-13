@@ -97,3 +97,11 @@ CREATE TABLE IF NOT EXISTS news (
   platform TEXT,
   published_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS post_comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  post_id INTEGER NOT NULL,
+  user_id TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

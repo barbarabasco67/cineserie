@@ -31,6 +31,8 @@ function migrate(env) {
     migrated = (async () => {
       const steps = [
         'ALTER TABLE news ADD COLUMN image TEXT',
+        'ALTER TABLE posts ADD COLUMN spoiler INTEGER NOT NULL DEFAULT 0',
+        "CREATE TABLE IF NOT EXISTS post_comments (id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER NOT NULL, user_id TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
         'ALTER TABLE users ADD COLUMN display TEXT',
         'ALTER TABLE users ADD COLUMN bio TEXT',
         'ALTER TABLE users ADD COLUMN pass_hash TEXT',
@@ -87,7 +89,8 @@ async function handleApi(request, env, url) {
     ).bind(uid).all();
     const library = await env.DB.prepare('SELECT title_id, status, episode, ratings, review FROM library WHERE user_id = ?').bind(uid).all();
     const posts = await env.DB.prepare(
-      `SELECT p.id, p.body, p.title_id, p.created_at, u.handle, u.display,
+      `SELECT p.id, p.body, p.title_id, p.created_at, p.spoiler, u.handle, u.display,
+        (SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id) AS comments,
         (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
         (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
        FROM posts p JOIN users u ON u.id = p.user_id ORDER BY p.id DESC LIMIT 50`
@@ -98,9 +101,16 @@ async function handleApi(request, env, url) {
          WHERE updated_at >= datetime('now', '-7 days') AND json_extract(ratings, '$.score') > 0)
        GROUP BY title_id ORDER BY avg DESC, votes DESC LIMIT 10`
     ).all();
+    const critics = await env.DB.prepare(
+      `SELECT u.handle, u.display, COUNT(*) AS reviews,
+         (SELECT COUNT(*) FROM follows f WHERE f.followed_id = u.id AND f.status = 'accepted') AS followers
+       FROM library l JOIN users u ON u.id = l.user_id
+       WHERE l.review IS NOT NULL AND l.review <> '' AND u.is_private = 0 AND l.updated_at >= datetime('now', '-30 days')
+       GROUP BY u.id ORDER BY reviews DESC LIMIT 20`
+    ).all();
     const news = await env.DB.prepare('SELECT id, kind, title, body, title_id, event_date, platform, image, published_at FROM news ORDER BY published_at DESC, id DESC LIMIT 40').all();
     const me = await meInfo(env, uid);
-    return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results, news: news.results });
+    return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results, news: news.results, critics: critics.results });
   }
 
   if (path === '/titles' && method === 'POST') {
@@ -200,7 +210,8 @@ async function handleApi(request, env, url) {
     if (visible) {
       const lib = await env.DB.prepare('SELECT title_id, status, episode, ratings, review, updated_at FROM library WHERE user_id = ? ORDER BY updated_at DESC LIMIT 200').bind(u.id).all();
       const posts = await env.DB.prepare(
-        `SELECT p.id, p.body, p.title_id, p.created_at,
+        `SELECT p.id, p.body, p.title_id, p.created_at, p.spoiler,
+          (SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id) AS comments,
           (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
           (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
          FROM posts p WHERE p.user_id = ? ORDER BY p.id DESC LIMIT 30`
@@ -261,9 +272,26 @@ async function handleApi(request, env, url) {
     if (!body) return bad('mensaje vacío');
     const titleId = b.title_id ? Number(b.title_id) : null;
     try {
-      const res = await env.DB.prepare('INSERT INTO posts (user_id, body, title_id) VALUES (?, ?, ?)').bind(uid, body, titleId).run();
+      const res = await env.DB.prepare('INSERT INTO posts (user_id, body, title_id, spoiler) VALUES (?, ?, ?, ?)').bind(uid, body, titleId, b.spoiler ? 1 : 0).run();
       return json({ id: res.meta.last_row_id });
     } catch { return bad('título no encontrado', 404); }
+  }
+
+  m = path.match(/^\/posts\/(\d+)\/comments$/);
+  if (m && method === 'GET') {
+    const r = await env.DB.prepare(
+      `SELECT c.id, c.body, c.created_at, u.handle, u.display FROM post_comments c JOIN users u ON u.id = c.user_id WHERE c.post_id = ? ORDER BY c.id ASC LIMIT 200`
+    ).bind(Number(m[1])).all();
+    return json({ comments: r.results });
+  }
+  if (m && method === 'POST') {
+    const b = await readBody(request);
+    const body = b && txt(b.body, 300);
+    if (!body) return bad('comentario vacío');
+    const ok = await env.DB.prepare('SELECT 1 AS x FROM posts WHERE id = ?').bind(Number(m[1])).first();
+    if (!ok) return bad('publicación no encontrada', 404);
+    const res = await env.DB.prepare('INSERT INTO post_comments (post_id, user_id, body) VALUES (?, ?, ?)').bind(Number(m[1]), uid, body).run();
+    return json({ id: res.meta.last_row_id });
   }
 
   m = path.match(/^\/posts\/(\d+)\/like$/);
