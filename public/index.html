@@ -498,7 +498,7 @@ function ticketList(type){
  <div class="sec"><h2>Joyas escondidas</h2></div><p class="muted small" style="margin:-6px 0 8px">Pocas espectadoras y muy buenas notas.</p>
  <div class="card" style="padding:4px 16px">${gems.map(li).join('')}</div>`}
 function pasillos(type){
- const gs=GENRES.map(g=>({...g,l:SHOWS.filter(s=>s.type===type&&GMAP[s.id]===g.k)})).filter(g=>g.l.length);
+ const gs=GENRES.map(g=>({...g,l:SHOWS.filter(s=>s.type===type&&(GMAP[s.id]||'').split(',').includes(g.k))})).filter(g=>g.l.length);
  const sel=gs.find(g=>g.k===S.genre);
  return `<div class="gen">${gs.map(g=>`<button class="gcell" aria-pressed="${S.genre===g.k}" data-act="genre" data-v="${g.k}">${ic(g.i,26)}<b>${g.k}</b><span class="muted small">${g.l.length} ${g.l.length>1?'títulos':'título'}</span></button>`).join('')}</div>
  ${sel?`<h3>${sel.k}</h3><div class="card" style="padding:4px 16px">${sel.l.map(li).join('')}</div>`:'<p class="muted small" style="margin-top:14px">Elige un pasillo para ver sus títulos.</p>'}`}
