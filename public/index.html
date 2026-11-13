@@ -704,7 +704,8 @@ videoclub(){
  const f=FIN[S.vfin];
  const bulbs='<i></i>'.repeat(14);
  const dec=S.deco.map((o,i)=>({...o,i}));
- const seq=[];for(let n=0;n<=list.length;n++){dec.filter(o=>Math.min(o.at,list.length)===n).forEach(o=>seq.push({d:o}));if(n<list.length)seq.push({s:list[n]})}
+ const full=SHOWS.filter(x=>x.status);VL=list;const inL=new Set(list);const mapAt=at=>full.slice(0,Math.min(at,full.length)).filter(x=>inL.has(x)).length;
+ const seq=[];for(let n=0;n<=list.length;n++){dec.filter(o=>mapAt(o.at)===n).forEach(o=>seq.push({d:o}));if(n<list.length)seq.push({s:list[n]})}
  seq.push({add:1});
  const rows=[];for(let i=0;i<seq.length;i+=per)rows.push(seq.slice(i,i+per));
  const cell=x=>x.add?`<button class="addslot" data-act="addopen" aria-label="Añadir título"><span>${ic('plus',22)}</span><b>Añadir título</b></button>`
@@ -949,6 +950,7 @@ function nightHTML(){const N=S.night;if(!N)return '';
   <div class="wrap" style="margin-top:16px"><button class="btn" data-act="nwant" data-id="${x.id}">${ic('plus',18)}Quiero verla</button>${N.res.length>1?`<button class="btn ghost" data-act="nnext">${ic('shuffle',16)}Otra opción</button>`:''}<button class="btn ghost" data-act="night">Repetir</button></div>`}
 
 
+let VL=[];
 /* arrastrar decoración */
 (()=>{let dg=null,gh=null,mk=null;
  const tgt=(x,y)=>{const cs=[...document.querySelectorAll('.slots .pcard')];if(!cs.length)return{at:0,r:null};let best=null,bd=1e9;cs.forEach((c,j)=>{const r=c.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,d=Math.hypot((x-cx)*.6,(y-cy)*1.4);if(d<bd){bd=d;best={j,r,left:x<cx}}});return best.left?{at:best.j,r:best.r,side:'l'}:{at:best.j+1,r:best.r,side:'r'}};
@@ -956,7 +958,7 @@ function nightHTML(){const N=S.night;if(!N)return '';
  document.addEventListener('pointerdown',e=>{const el=e.target.closest('.deco[data-di]');if(!el||e.target.closest('.dx'))return;dg={el,i:Number(el.dataset.di),x0:e.clientX,y0:e.clientY,moved:false};try{el.setPointerCapture(e.pointerId)}catch(_){}});
  document.addEventListener('pointermove',e=>{if(!dg)return;if(!dg.moved&&Math.hypot(e.clientX-dg.x0,e.clientY-dg.y0)>7){dg.moved=true;gh=dg.el.cloneNode(true);gh.className='deco dragghost';gh.removeAttribute('data-di');const dx=gh.querySelector('.dx');dx&&dx.remove();document.body.appendChild(gh);mk=document.createElement('i');mk.className='dropmark';document.body.appendChild(mk);dg.el.style.opacity='.25'}
   if(dg.moved){gh.style.left=e.clientX+'px';gh.style.top=e.clientY+'px';const t=tgt(e.clientX,e.clientY);if(t.r){mk.style.display='block';mk.style.left=(t.side==='l'?t.r.left-8:t.r.right+4)+'px';mk.style.top=t.r.top+'px';mk.style.height=t.r.height+'px'}else mk.style.display='none';dg.t=t}});
- const end=e=>{if(!dg)return;const d=dg;dg=null;clean();if(d.moved){const t=d.t||tgt(e.clientX,e.clientY);S.deco[d.i].at=t.at;S.decoSel=d.i;saveDeco();render()}else{S.decoSel=S.decoSel===d.i?null:d.i;render()}};
+ const end=e=>{if(!dg)return;const d=dg;dg=null;clean();if(d.moved){const t=d.t||tgt(e.clientX,e.clientY);{const full=SHOWS.filter(x=>x.status);S.deco[d.i].at=t.at<VL.length?full.indexOf(VL[t.at]):(VL.length?full.indexOf(VL[VL.length-1])+1:full.length)}S.decoSel=d.i;saveDeco();render()}else{S.decoSel=S.decoSel===d.i?null:d.i;render()}};
  document.addEventListener('pointerup',end);document.addEventListener('pointercancel',()=>{dg=null;clean();render()});
 })();
 
