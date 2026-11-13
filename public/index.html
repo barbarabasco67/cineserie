@@ -39,6 +39,8 @@ svg{display:block}
 .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
 .btn.block{width:100%}
 .btn[disabled]{opacity:.45;cursor:default}
+.nprog{display:flex;gap:6px;margin:14px 0 4px}.nprog i{flex:1;height:4px;border-radius:9px;background:var(--line)}.nprog i.on{background:var(--accent)}
+.nopts{display:grid;gap:10px;margin-top:12px}.nopt{display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--card2);color:inherit;font:inherit;cursor:pointer;transition:transform .15s,border-color .2s}.nopt:active{transform:scale(.98)}.nopt:hover{border-color:var(--accent)}.nopt .si{color:var(--accent);display:grid}
 .chip{border:1px solid var(--line);background:transparent;padding:5px 11px;border-radius:999px;font:600 12px var(--fb);cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--ink);border-color:var(--accent)}
 .dd{border:1px solid var(--line);border-radius:12px;margin:10px 0;background:var(--card)}.dd-h{width:100%;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:none;border:0;color:var(--text);cursor:pointer;text-align:left}.dd-h span{display:flex;flex-direction:column;gap:2px}.dd-h small{color:var(--soft);font:600 12px var(--fb)}.dd-h svg{transition:transform .2s;transform:rotate(90deg)}.dd-h[aria-expanded=true] svg{transform:rotate(-90deg)}.dd-b{padding:2px 14px 14px}
@@ -468,7 +470,7 @@ const POLL=[2,6,7], FRIENDS={Lucía:2,Marta:6,Irene:6}, AVC={Lucía:'#f4a97b',Ma
 
 /* ---------- estado ---------- */
 const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix','Prime Video','Filmin']),
- filter:'Todas',mood:null,mine:true,q:'',tonight:null,sheet:null,vote:null,owned:new Set(),
+ filter:'Todas',mood:null,mine:true,q:'',tonight:null,night:null,sheet:null,vote:null,owned:new Set(),
  dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
 let REAL=false;
 const byId=id=>SHOWS.find(s=>s.id===id);
@@ -633,8 +635,8 @@ inicio(){
  <div class="card">${t?`<div class="now"><button class="pcard" data-act="open" data-id="${t.id}" aria-label="Abrir ${t.title}" style="width:70px;flex:none">${poster(t,'sm')}</button>
   <div class="info"><h2 style="font-size:18px">${t.title}</h2><p class="muted small" style="margin:2px 0 0">${t.tags.slice(0,2).join(' · ')}</p><p class="clamp">${esc(t.syn)}</p>
   <div class="wrap" style="margin-top:8px">${platChips(t)}</div></div></div>
-  <div class="wrap" style="margin-top:14px"><button class="btn" data-act="want" data-id="${t.id}">${ic('plus',18)}Quiero verla</button><button class="btn ghost" data-act="surprise">${ic('shuffle',18)}Otra</button></div>`
-  :`<p style="margin:0 0 12px">¿No sabes qué ver? Te proponemos algo que esté en tus plataformas.</p><button class="btn" data-act="surprise">${ic('shuffle',18)}Sorpréndeme</button>`}</div>
+  <div class="wrap" style="margin-top:14px"><button class="btn" data-act="want" data-id="${t.id}">${ic('plus',18)}Quiero verla</button><button class="btn ghost" data-act="night">${ic('shuffle',18)}Otra recomendación</button></div>`
+  :`<p style="margin:0 0 12px">Cuéntanos qué te apetece esta noche y te recomendamos algo en 4 preguntas.</p><button class="btn" data-act="night">${ic('shuffle',18)}Elegir película o serie</button>`}</div>
 ${weeklyRank()}
  ${newRow('Película','Nuevas películas')}${newRow('Serie','Nuevas series')}
  <div class="sec"><h2>Últimos días en cartel</h2></div>
@@ -813,7 +815,7 @@ function updateTabs(){const t=$('#tabs');if(!t.dataset.ready){t.innerHTML='<i cl
  [...t.querySelectorAll('button')].forEach((b,i)=>{const on=TABS[i][0]===S.tab;if(on&&b.getAttribute('aria-current')!=='page'){b.setAttribute('aria-current','page');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');t.style.setProperty('--i',i)}else if(!on)b.removeAttribute('aria-current')})}
 function updateSheet(){
  const sh=$('#sheet'),top=sh.scrollTop,was=sh.classList.contains('on');
- if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
+ if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
  if(!was&&S.sheet!==null){sh.classList.add('fresh');setTimeout(()=>sh.classList.remove('fresh'),800)}
  sh.classList.toggle('on',S.sheet!==null);$('#backdrop').classList.toggle('on',S.sheet!==null);
 }
@@ -836,11 +838,52 @@ function saveDraft(){
  S.sheet=null;S.tab='videoclub';S.filter='Todas';S.draft=newDraft();
  toast(d.propose?'Añadida. Queda en revisión para el catálogo común':'Añadida a tu videoclub');render(true);
 }
-function surprise(){
- const c=SHOWS.filter(s=>(!s.status||s.status==='Quiero ver')&&avail(s).length&&s.id!==S.tonight);
- if(!c.length){toast('Añade plataformas para recibir ideas');return}
- S.tonight=c[Math.floor(Math.random()*c.length)].id;render();
-}
+const NQ=[
+ {k:'who',q:'¿Con quién la ves?',o:[['sola','Para mí sola'],['pareja','En pareja'],['amigas','Con amigas'],['familia','En familia']]},
+ {k:'vibe',q:'¿Qué rollo te apetece?',o:[['reir','Reírme un rato','smile'],['llorar','Llorar a gusto','drop'],['enamorar','Enamorarme','heart'],['tension','Pasar tensión','bolt'],['cozy','Algo reconfortante','mug'],['spicy','Algo picante','flame']]},
+ {k:'type',q:'¿Película o serie?',o:[['Película','Una película'],['Serie','Una serie'],['any','Me da igual']]},
+ {k:'time',q:'¿Cuánto tiempo tienes?',o:[['corto','Poco, algo cortito'],['normal','Una sesión normal'],['largo','Sin prisa, cuanto más mejor']]}];
+const NV={
+ reir:{g:['Comedia','Comedia romántica'],t:['Hot girl summer','Girls night','Grumpy x sunshine']},
+ llorar:{g:['Drama'],t:['Para llorar']},
+ enamorar:{g:['Romance','Comedia romántica'],t:['Enemies to lovers','Fake dating','Slow burn','Forbidden love','Situationship','Main character energy']},
+ tension:{g:['Suspense','Misterio'],t:['Plot twist','Dark romance']},
+ cozy:{g:['Cozy'],t:['Comfort','Cozy autumn','Slow burn']},
+ spicy:{g:[],t:['Spicy','Dark romance','Forbidden love','Situationship','Enemies to lovers']}};
+const NW={sola:['Comfort','Para llorar','Main character energy','Dark romance'],pareja:['Forbidden love','Slow burn','Fake dating','Enemies to lovers'],amigas:['Girls night','Hot girl summer','Para ver con amigas'],familia:['Comfort','Cozy autumn']};
+const NWL={sola:'para una noche para ti',pareja:'para ver en pareja',amigas:'para ver con amigas',familia:'apta para ver en familia'};
+function nightPick(a){
+ const V=NV[a.vibe]||{g:[],t:[]},W=NW[a.who]||[];
+ const cand=SHOWS.filter(x=>(!x.status||x.status==='Quiero ver')&&(a.type==='any'||x.type===a.type));
+ const sc=cand.map(x=>{let n=0;const why=[];const gs=(GMAP[x.id]||'').split(',');
+  const gm=V.g.filter(g=>gs.includes(g)),tm=V.t.filter(t=>x.tags.includes(t));
+  n+=gm.length*3+tm.length*3;tm.slice(0,2).forEach(t=>why.push(t));if(!tm.length&&gm.length)why.push(gm[0]);
+  const wm=W.filter(t=>x.tags.includes(t));n+=wm.length*2;
+  if(a.who==='familia'){const ag=parseInt(x.age)||0;if(ag&&ag>=16)n-=8;else if(ag&&ag<=12)n+=3;if(x.tags.includes('Spicy')||x.tags.includes('Dark romance'))n-=6}
+  if(a.who==='amigas'&&wm.length)why.push('plan de amigas');
+  const m=x.type==='Película'?x.min:x.eps;
+  if(x.type==='Película'){if(a.time==='corto'&&m&&m<=105)n+=3,why.push('dura '+m+' min');if(a.time==='corto'&&m>130)n-=3;if(a.time==='largo'&&m>=130)n+=2}
+  else{if(a.time==='corto'&&m&&m<=8)n+=3,why.push('solo '+m+' episodios');if(a.time==='largo'&&m>=10)n+=2}
+  if(avail(x).length)n+=3;
+  if(x.avg)n+=Math.min(2,x.avg/50);
+  return {x,n:n+Math.random()*1.5,why,who:wm.length?NWL[a.who]:''}}).sort((p,q)=>q.n-p.n);
+ return sc.slice(0,5)}
+function nightHTML(){const N=S.night;if(!N)return '';
+ const close=`<button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button>`;
+ if(N.step<NQ.length){const q=NQ[N.step];
+  return `<div class="sheet-head"><div class="grow"><p class="muted small" style="margin:0">Pregunta ${N.step+1} de ${NQ.length}</p><h2>${q.q}</h2></div>${close}</div>
+  <div class="nprog">${NQ.map((_,i)=>`<i class="${i<=N.step?'on':''}"></i>`).join('')}</div>
+  <div class="nopts">${q.o.map(o=>`<button class="nopt" data-act="nq" data-k="${q.k}" data-v="${o[0]}">${o[2]?`<span class="si">${ic(o[2],20)}</span>`:''}<b>${o[1]}</b></button>`).join('')}</div>
+  ${N.step?`<button class="btn ghost" style="margin-top:14px" data-act="nback">${ic('back',16)}Atrás</button>`:''}`}
+ const r=N.res[N.i];
+ if(!r)return `<div class="sheet-head"><div class="grow"><h2>Sin resultados</h2></div>${close}</div><p class="muted">No hay nada nuevo en el catálogo con esas respuestas. Prueba con otras.</p><button class="btn block" data-act="night">Empezar de nuevo</button>`;
+ const x=r.x,mins=x.type==='Película'&&x.min?` · ${x.min} min`:x.type==='Serie'?` · ${x.eps} episodios`:'';
+ const why=[...r.why.slice(0,2),r.who].filter(Boolean);
+ return `<div class="sheet-head"><div class="grow"><p class="muted small" style="margin:0">Tu plan para esta noche</p><h2>${esc(x.title)}</h2></div>${close}</div>
+  <div class="now" style="margin-top:12px"><button class="pcard" data-act="open" data-id="${x.id}" aria-label="Abrir ${esc(x.title)}" style="width:104px;flex:none">${poster(x,'sm')}</button>
+  <div class="info"><p class="muted small" style="margin:0">${x.type} · ${x.year}${mins}</p>${why.length?`<p style="margin:8px 0 0;font-weight:600">Te la proponemos porque: ${why.join(', ')}.</p>`:''}<div class="wrap" style="margin-top:8px">${platChips(x)}</div></div></div>
+  <p class="clamp" style="margin-top:12px">${esc(x.syn)}</p>
+  <div class="wrap" style="margin-top:16px"><button class="btn" data-act="nwant" data-id="${x.id}">${ic('plus',18)}Quiero verla</button>${N.res.length>1?`<button class="btn ghost" data-act="nnext">${ic('shuffle',16)}Otra opción</button>`:''}<button class="btn ghost" data-act="night">Repetir</button></div>`}
 
 document.addEventListener('click',e=>{
  const a=e.target.closest('[data-act]');if(!a)return;
@@ -855,7 +898,11 @@ document.addEventListener('click',e=>{
   case 'clearscore':{s.r.score=0;syncLib(s);render();updateSheet();if(REAL)setTimeout(load,600);break}
   case 'rate':{const k=a.dataset.k,n=Number(v);s.r[k]=s.r[k]===n?0:n;syncLib(s);render();break}
   case 'watch':watch(id);break;
-  case 'surprise':surprise();break;
+  case 'night':S.night={step:0,a:{},res:[],i:0};S.sheet='night';updateSheet();break
+  case 'nq':{const N=S.night;N.a[a.dataset.k]=v;N.step++;if(N.step>=NQ.length){N.res=nightPick(N.a);N.i=0;if(N.res[0])S.tonight=N.res[0].x.id}updateSheet();break}
+  case 'nback':S.night.step=Math.max(0,S.night.step-1);updateSheet();break
+  case 'nnext':{const N=S.night;N.i=(N.i+1)%N.res.length;S.tonight=N.res[N.i].x.id;updateSheet();break}
+  case 'nwant':{s.status='Quiero ver';toast('Añadida a Quiero ver');syncLib(s);S.sheet=null;render();updateSheet();break}
   case 'want':s.status='Quiero ver';toast('Añadida a Quiero ver');syncLib(s);render();break;
   case 'kind':S.kind=v||null;render();break;
   case 'dd':S.dd=S.dd===v?null:v;render();break;
