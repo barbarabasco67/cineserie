@@ -86,3 +86,14 @@ CREATE TABLE IF NOT EXISTS follows (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (follower_id, followed_id)
 );
+
+CREATE TABLE IF NOT EXISTS news (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT,
+  title_id INTEGER,
+  event_date TEXT,
+  platform TEXT,
+  published_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

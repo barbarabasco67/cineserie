@@ -41,6 +41,7 @@ function migrate(env) {
         'ALTER TABLE users ADD COLUMN banner TEXT',
         'ALTER TABLE users ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0',
         "ALTER TABLE follows ADD COLUMN status TEXT NOT NULL DEFAULT 'accepted'",
+        "CREATE TABLE IF NOT EXISTS news (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, title TEXT NOT NULL, body TEXT, title_id INTEGER, event_date TEXT, platform TEXT, published_at TEXT NOT NULL DEFAULT (datetime('now')))",
         'CREATE TABLE IF NOT EXISTS follows (follower_id TEXT NOT NULL REFERENCES users(id), followed_id TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), PRIMARY KEY (follower_id, followed_id))',
       ];
       steps.sort((a, b) => (a.startsWith('CREATE') ? 0 : 1) - (b.startsWith('CREATE') ? 0 : 1));
@@ -96,8 +97,9 @@ async function handleApi(request, env, url) {
          WHERE updated_at >= datetime('now', '-7 days') AND json_extract(ratings, '$.score') > 0)
        GROUP BY title_id ORDER BY avg DESC, votes DESC LIMIT 10`
     ).all();
+    const news = await env.DB.prepare('SELECT id, kind, title, body, title_id, event_date, platform, published_at FROM news ORDER BY published_at DESC, id DESC LIMIT 40').all();
     const me = await meInfo(env, uid);
-    return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results });
+    return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results, news: news.results });
   }
 
   if (path === '/titles' && method === 'POST') {

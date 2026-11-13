@@ -477,6 +477,10 @@ const SYN={
 20:'Una noche, un parque y dos desconocidos que solo se cuentan lo que no le han contado a nadie. Íntima y pausada.'};
 SHOWS.forEach(s=>{s.syn=SYN[s.id];s.source='base';s.proposed=false});
 const DAYS=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'], TODAY=13;
+const MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const TODAYISO=iso(new Date());
+const pdate=p=>p.date||('2026-11-'+String(p.d).padStart(2,'0'));
 const PREM=[
  {d:14,id:4,t:'Primavera en Seúl · episodio 6',p:'Netflix'},
  {d:18,id:8,t:'El club de las tres lunas · episodio 3',p:'Max'},
@@ -486,7 +490,7 @@ const PREM=[
  {d:25,id:13,t:'Luz de agosto · en cines',p:'Cines'},
  {d:27,id:1,t:'Cartas desde el faro · final de temporada',p:'Netflix'},
  {d:30,id:6,t:'Mi vecino el fiscal · se va de SkyShowtime',p:'SkyShowtime'}].map((p,i)=>({...p,i}));
-const dlabel=d=>`${DAYS[(d+5)%7]} ${d} nov`;
+const dlabel=x=>{const t=new Date(x+'T12:00:00');return `${DAYS[(t.getDay()+6)%7]} ${t.getDate()} ${MESES[t.getMonth()].slice(0,3)}`};
 const NEWS=[
  {k:'Renovación',t:'«Hasta que cierre el café» tendrá segunda temporada',x:'La serie comfort del año vuelve con nuevos vecinos y la misma cafetería de siempre.',id:3,w:'Hoy'},
  {k:'Tráiler',t:'Primer adelanto de «Vuelve a casa»',x:'La película llegará a Disney+ y Prime Video con un avance lleno de pueblo y recuerdos.',id:7,w:'Ayer'},
@@ -720,7 +724,7 @@ ${weeklyRank()}
  <div class="sec"><h2>Últimos días en cartel</h2></div>
  <div class="card" style="padding:4px 16px">${SHOWS.filter(s=>s.leaving).map(s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">Se va de ${s.leaving}</span></span>${ic('chevron',18)}</button>`).join('')}</div>
  <div class="sec"><h2>Próximos estrenos</h2></div>
- <div class="card" style="padding:4px 16px">${PREM.filter(p=>p.d>=TODAY).slice(0,2).map(p=>`<div class="list-item" style="cursor:default"><span class="grow"><b>${p.t}</b><span class="muted small">${dlabel(p.d)} · ${p.p}</span></span>${ic('clock',18)}</div>`).join('')}
+ <div class="card" style="padding:4px 16px">${PREM.filter(p=>pdate(p)>=TODAYISO).sort((a,b)=>pdate(a)<pdate(b)?-1:1).slice(0,2).map(p=>`<div class="list-item" style="cursor:default"><span class="grow"><b>${p.t}</b><span class="muted small">${dlabel(pdate(p))}${p.p?' · '+p.p:''}</span></span>${ic('clock',18)}</div>`).join('')}
   <div style="padding:12px 0"><button class="btn ghost block" data-act="goto" data-v="estrenos">Ver calendario</button></div></div>`},
 
 videoclub(){
@@ -853,20 +857,23 @@ function postHTML(){const d=S.pdraft;
 
 /* ---------- calendario y noticias ---------- */
 function calendar(){
- const cells=['<span></span>'.repeat(6)];
- for(let d=1;d<=30;d++){const n=PREM.filter(p=>p.d===d).length;
-  cells.push(`<button class="day ${d===TODAY?'today':''} ${S.cday===d?'sel':''}" data-act="day" data-v="${d}" aria-pressed="${S.cday===d}" aria-label="${d} de noviembre${n?', '+n+(n>1?' estrenos':' estreno'):''}">${d}${n?'<i></i>':''}</button>`)}
- const list=S.cday?PREM.filter(p=>p.d===S.cday):PREM.filter(p=>p.d>=TODAY);
- return `<div class="card"><div class="seas"><h2>Noviembre 2026</h2>${S.cday?`<button class="chip" data-act="day" data-v="${S.cday}">Ver todo el mes</button>`:''}</div>
+ const [Y,M]=S.cm||(S.cm=[new Date().getFullYear(),new Date().getMonth()]);
+ const lead=(new Date(Y,M,1).getDay()+6)%7, dim=new Date(Y,M+1,0).getDate();
+ const cells=[];for(let i=0;i<lead;i++)cells.push('<span></span>');
+ for(let d=1;d<=dim;d++){const k=Y+'-'+String(M+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');const n=PREM.filter(p=>pdate(p)===k).length;
+  cells.push(`<button class="day ${k===TODAYISO?'today':''} ${S.cday===k?'sel':''}" data-act="day" data-v="${k}" aria-pressed="${S.cday===k}" aria-label="${d} de ${MESES[M]}${n?', '+n+(n>1?' estrenos':' estreno'):''}">${d}${n?'<i></i>':''}</button>`)}
+ const list=(S.cday?PREM.filter(p=>pdate(p)===S.cday):PREM.filter(p=>pdate(p)>=TODAYISO)).slice().sort((x,y)=>pdate(x)<pdate(y)?-1:1);
+ return `<div class="card"><div class="seas"><button class="icon-btn" data-act="cmonth" data-v="-1" aria-label="Mes anterior">${ic('back',18)}</button><h2>${MESES[M][0].toUpperCase()+MESES[M].slice(1)} ${Y}</h2><button class="icon-btn" data-act="cmonth" data-v="1" aria-label="Mes siguiente" style="transform:scaleX(-1)">${ic('back',18)}</button></div>
+ ${S.cday?`<div style="text-align:center;margin:4px 0 10px"><button class="chip" data-act="day" data-v="${S.cday}">Ver todos los próximos</button></div>`:''}
  <div class="cal">${DAYS.map(d=>`<span class="hd">${d}</span>`).join('')}${cells.join('')}</div></div>
  <h3>${S.cday?dlabel(S.cday):'Próximos estrenos'}</h3>
- <div class="card" style="padding:4px 16px">${list.length?list.map(p=>`<div class="list-item" style="cursor:default"><span class="dt">${DAYS[(p.d+5)%7]}<b>${p.d}</b></span>
-  <button class="grow" data-act="open" data-id="${p.id}" style="background:none;border:0;padding:0;text-align:left;cursor:pointer;min-width:0"><b>${p.t}</b><span class="muted small">${p.p}</span></button>
-  <button class="icon-btn bell" data-act="bell" data-v="${p.i}" aria-pressed="${S.bells.has(p.i)}" aria-label="Avisarme: ${p.t}">${ic('bell',18)}</button></div>`).join(''):'<p class="muted" style="padding:12px 0;margin:0">Sin estrenos este día.</p>'}</div>`}
+ <div class="card" style="padding:4px 16px">${list.length?list.map(p=>{const dt=new Date(pdate(p)+'T12:00:00');const inner=`<b>${p.t}</b><span class="muted small">${p.p||''}</span>`;return `<div class="list-item" style="cursor:default"><span class="dt">${DAYS[(dt.getDay()+6)%7]}<b>${dt.getDate()}</b></span>
+  ${p.id&&byId(p.id)?`<button class="grow" data-act="open" data-id="${p.id}" style="background:none;border:0;padding:0;text-align:left;cursor:pointer;min-width:0">${inner}</button>`:`<span class="grow" style="min-width:0">${inner}</span>`}
+  <button class="icon-btn bell" data-act="bell" data-v="${p.i}" aria-pressed="${S.bells.has(p.i)}" aria-label="Avisarme: ${p.t}">${ic('bell',18)}</button></div>`}).join(''):'<p class="muted" style="padding:12px 0;margin:0">Sin estrenos '+(S.cday?'este día':'próximos')+'.</p>'}</div>`}
 function newsView(){
- const l=NEWS.filter(n=>!S.newsMine||byId(n.id).status);
+ const l=NEWS.filter(n=>!S.newsMine||(n.id&&byId(n.id)&&byId(n.id).status));
  return `<button class="switch" role="switch" aria-checked="${S.newsMine}" data-act="newsmine" style="margin-top:0"><span>Solo de mis series</span><span class="tr"></span></button>
- <div class="card" style="padding:4px 16px;margin-top:10px">${l.length?l.map(n=>`<button class="news" data-act="open" data-id="${n.id}"><span class="k">${n.k} · ${n.w}</span><b>${n.t}</b><span class="muted small">${n.x}</span></button>`).join(''):'<p class="muted" style="padding:12px 0;margin:0">Aún no hay noticias de tus series.</p>'}</div>`}
+ <div class="card" style="padding:4px 16px;margin-top:10px">${l.length?l.map(n=>{const c=`<span class="k">${n.k} · ${n.w}</span><b>${n.t}</b><span class="muted small">${n.x}</span>`;return n.id&&byId(n.id)?`<button class="news" data-act="open" data-id="${n.id}">${c}</button>`:`<div class="news">${c}</div>`}).join(''):'<p class="muted" style="padding:12px 0;margin:0">Aún no hay noticias de tus series.</p>'}</div>`}
 
 /* ---------- ficha ---------- */
 const dmy=d=>{const m=String(d||'').match(/^(\d{4})-(\d\d)-(\d\d)/);return m?`${+m[3]}/${+m[2]}/${m[1]}`:''};
@@ -1040,7 +1047,8 @@ document.addEventListener('click',e=>{
   case 'postsave':{const x=S.pdraft.x.trim();if(!x){toast('Escribe algo primero');break}const np={k:'l'+Date.now(),u:ME().handle,n:ME().display,h:'@'+ME().handle,t:'Ahora',x,id:S.pdraft.id?Number(S.pdraft.id):null,l:0,c:0};POSTS.unshift(np);send('/posts','POST',{body:x,title_id:np.id}).then(r=>{if(r&&r.id)np.k=r.id}).catch(()=>{});S.sheet=null;toast('Publicado en la charla');render();break}
   case 'goto':S.tab='descubrir';S.dtab=v;S.cday=null;S.sheet=null;render(true);break;
   case 'dtab':S.dtab=v;S.cday=null;render(true);break;
-  case 'day':S.cday=S.cday===Number(v)?null:Number(v);render();break;
+  case 'day':S.cday=S.cday===v?null:v;render();break;
+  case 'cmonth':{let [y,m]=S.cm;m+=Number(v);if(m<0){m=11;y--}if(m>11){m=0;y++}S.cm=[y,m];S.cday=null;render();break}
   case 'bell':{const i=Number(v);if(S.bells.has(i)){S.bells.delete(i)}else{S.bells.add(i);toast('Te avisaremos ese día')}render();break}
   case 'newsmine':S.newsMine=!S.newsMine;render();break;
   case 'addopen':S.draft=newDraft();if(a.dataset.q)S.draft.title=a.dataset.q;S.sheet='add';updateSheet();break;
@@ -1104,6 +1112,7 @@ const ago=d=>{const m=Math.max(0,Math.round((Date.now()-new Date(d.replace(' ','
 function load(){
  send('/state').then(d=>{
   SHOWS.length=0;[GMAP,STATS,FRIENDS].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));[PREM,POSTS,CLUBS,POLL,DIRS,CRIT,NEWS].forEach(a=>a.length=0);REAL=true;
+  (d.news||[]).forEach((n,i)=>{NEWS.push({k:n.kind,t:n.title,x:n.body||'',id:n.title_id,w:ago(n.published_at)});if(n.event_date)PREM.push({date:n.event_date,id:n.title_id,t:n.title,p:n.platform||'',i:i})});
   WEEKLY=d.weekly||[];S.me=d.me||null;
   d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({avg:t.avg,votes:t.votes,id:t.id,poster:t.poster,director:t.director,writers:t.writers,release:t.release_date,age:t.age,coll:(t.collections||'').split(',').map(x=>x.trim()).filter(Boolean),saga:t.saga||'',title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
   d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status==='En pausa'?'Viendo':l.status;s.ep=l.episode;s.review=l.review||'';try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
