@@ -555,9 +555,9 @@ const POSTS=[
  {u:'Noelia',h:'@noe.cine',t:'Hace 3 h',x:'Opinión impopular: las comedias románticas de ahora son mejores que las de los 2000.',id:null,l:48,c:27}].map((p,i)=>({...p,k:'d'+i}));
 const CRIT=[{n:'Carla Montes',h:'@carla.montes',v:42,f:2310},{n:'Sandra Vela',h:'@sandra.vela',v:32,f:3120},{n:'Joana Rey',h:'@joana.rey',v:30,f:1890},{n:'Paula Nieto',h:'@paula.nieto',v:29,f:2650},{n:'Eva Llorente',h:'@eva.llorente',v:28,f:1420}];
 const PLACES={
- cine:{n:'Sala de cine',sub:'Películas',d:'Taquilla, pasillos y directores',live:'312 en sala ahora',tabs:[['taquilla','Taquilla'],['pasillos','Pasillos'],['dir','Directores']]},
- casa:{n:'Salón de casa',sub:'Series',d:'Sofá, maratones y reacciones sin spoilers',live:'3 maratones esta semana',tabs:[['sofa','Sofá'],['pasillos','Pasillos'],['mar','Maratones'],['spoil','Sin spoilers']]},
- cafe:{n:'Cafetería',sub:'Charla',d:'Comenta, queda y descubre voces',live:'87 conversando',tabs:[['charla','Charla'],['quedadas','Quedadas'],['crit','Críticas']]}};
+ cine:{n:'Sala de cine',sub:'Películas',d:'Qué ver en el cine: taquilla, géneros y directores',live:'312 en sala ahora',tabs:[['taquilla','Taquilla'],['pasillos','Pasillos'],['dir','Directores']]},
+ casa:{n:'Salón de casa',sub:'Series y sesiones',d:'Series del momento y sesiones para ver juntas desde casa',live:'3 sesiones esta semana',tabs:[['sofa','Sofá'],['pasillos','Pasillos'],['ses','Sesiones']]},
+ cafe:{n:'Cafetería',sub:'Charla',d:'Charla con la comunidad y las voces con más reseñas',live:'87 conversando',tabs:[['charla','Charla'],['crit','Críticas']]}};
 const AVCOL=['#e8a56a','#8fc1f0','#e8c98f','#b8dcae','#f08fa5'];
 const esc=t=>String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 const newDraft=()=>({title:'',type:'Serie',year:'',n:'',plats:new Set(),tags:new Set(),syn:'',propose:true});
@@ -867,11 +867,11 @@ const EMPTY=m=>`<div class="card"><p class="muted small" style="margin:0">${m}</
 const planKindName=k=>k==='quedada'?'quedada':'maratón';
 const planStart=p=>new Date(p.date+'T'+(p.time||'00:00')+':00');
 const planLive=p=>{const t=planStart(p).getTime(),n=Date.now();return p.time?(n>=t-10*60000&&n<=t+4*3600000):(p.date===TODAYISO)};
-function planList(kind){
- const l=PLANS.filter(p=>p.kind===kind);
- const intro=`<div class="card" style="margin-bottom:14px"><b>${kind==='quedada'?'Noche de peli juntas':'Maratón juntas'}</b><p class="muted small" style="margin:6px 0 0">Quedáis a la misma hora y cada una lo ve desde su casa. Mientras tanto, comentáis en directo en el chat de la sesión.</p></div>
- <button class="btn block" style="margin:0 0 14px" data-act="planopen" data-v="${kind}">${ic('plus',18)}${kind==='quedada'?'Organizar una noche de peli':'Organizar un maratón'}</button>`;
- if(!l.length)return intro+EMPTY('Aún no hay sesiones. Organiza la primera: elige título, día y hora.');
+function planList(){
+ const kind='maraton',l=PLANS.slice();
+ const intro=`<div class="card" style="margin-bottom:14px"><b>Sesiones para ver juntas</b><p class="muted small" style="margin:6px 0 0">Una serie o película, a una hora acordada. Cada una la ve desde su casa y comentáis en directo en el chat de la sesión.</p></div>
+ <button class="btn block" style="margin:0 0 14px" data-act="planopen" data-v="${kind}">${ic('plus',18)}Organizar una sesión</button>`;
+ if(!l.length)return intro+EMPTY('Aún no hay sesiones. Organiza la primera: escribe el título, el día y la hora.');
  return intro+l.map(p=>{const s=byId(p.tid),me=ME().handle===p.hh,lv=planLive(p);return `<div class="card"><span class="tag">${lv?'En directo ahora':dlabel(p.date)+(p.time?' · '+p.time:'')}</span><h2 style="font-size:18px;margin:10px 0 4px">${esc(s?s.title:p.name||'Sesión juntas')}</h2><p class="muted small" style="margin:0">Organiza <button class="ulink" data-act="user" data-v="${esc(p.hh)}" style="display:inline">${esc(p.host)}</button> · ${p.n} ${p.n===1?'apuntada':'apuntadas'} · cada una desde su casa</p>${p.note?`<p style="margin:8px 0 0">${esc(p.note)}</p>`:''}<div class="wrap" style="margin-top:12px"><button class="btn ${p.j?'ghost':''}" data-act="pjoin" data-v="${p.id}" aria-pressed="${p.j}">${p.j?ic('check',18)+'Apuntada':'Apuntarme'}</button>${p.j?`<button class="btn ${lv?'':'ghost'}" data-act="liveopen" data-v="${p.id}">${ic('chat',18)}${lv?'Entrar al chat en directo':'Abrir el chat'}</button>`:''}${s?`<button class="btn ghost" data-act="open" data-id="${s.id}">Ver ficha</button>`:''}${me?`<button class="btn ghost" data-act="pdel" data-v="${p.id}">Cancelar</button>`:''}</div></div>`}).join('')}
 function nextSession(){
  const now=Date.now();
@@ -887,7 +887,7 @@ let liveTimer=null;
 function liveFetch(){const L=S.live;if(!L||S.sheet!=='live'){clearInterval(liveTimer);liveTimer=null;return}
  send('/plans/'+L.id+'/chat?after='+L.last).then(r=>{if(!S.live||S.live!==L)return;const m=r.messages||[];if(!m.length)return;L.msgs=L.msgs.concat(m);L.last=m[m.length-1].id;const el=$('#livelist');if(el){const atEnd=el.scrollHeight-el.scrollTop-el.clientHeight<60;if(L.msgs.length===m.length)el.innerHTML='';el.insertAdjacentHTML('beforeend',m.map(c=>liveItem(c,c.handle===ME().handle)).join(''));if(atEnd)el.scrollTop=el.scrollHeight}}).catch(()=>{})}
 function planHTML(){const d=S.plan||{};
- return `<div class="sheet-head"><div class="grow"><h2>${d.kind==='quedada'?'Organizar una noche de peli':'Organizar un maratón'}</h2><p class="muted small" style="margin:4px 0 0">Cada una lo ve desde su casa a la misma hora y comentáis en el chat en directo.</p></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ return `<div class="sheet-head"><div class="grow"><h2>Organizar una sesión</h2><p class="muted small" style="margin:4px 0 0">Cada una lo ve desde su casa a la misma hora y comentáis en el chat en directo.</p></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  <label class="fld"><span>Título</span><input id="f-pl-title" maxlength="80" list="pl-list" placeholder="Escribe el título o elige uno" value="${esc(d.name||'')}" autocomplete="off"><datalist id="pl-list">${SHOWS.map(s=>`<option value="${esc(s.title)}"></option>`).join('')}</datalist></label>
  <label class="fld"><span>Día</span><input id="f-pl-d" type="date" min="${TODAYISO}" value="${esc(d.date||'')}"></label>
  <label class="fld"><span>Hora (opcional)</span><input id="f-pl-t" type="time" value="${esc(d.time||'')}"></label>
@@ -927,7 +927,7 @@ function criticas(){
  ${l.map((c,i)=>{const in_=`<span class="no">${i+1}</span><span class="grow"><b>${esc(c.n)}</b><span class="muted small">${esc(c.h)}</span><span class="small" style="color:var(--soft)">${S.rev==='res'?c.v+' reseñas en 30 días':fmt(c.f)+' seguidoras'}</span></span>`;return c.u?`<button class="ticket" data-act="user" data-v="${esc(c.u)}">${in_}${ic('chevron',18)}</button>`:`<div class="ticket" style="cursor:default">${in_}</div>`}).join('')}`}
 function placeView(){
  const P=PLACES[S.place],t=S.sub[S.place];
- const body={cine:{taquilla:()=>ticketList('Película'),pasillos:()=>pasillos('Película'),dir:directoras},casa:{sofa:()=>ticketList('Serie'),pasillos:()=>pasillos('Serie'),mar:maratones,spoil:spoilers},cafe:{charla,quedadas,crit:criticas}}[S.place][t]();
+ const body={cine:{taquilla:()=>ticketList('Película'),pasillos:()=>pasillos('Película'),dir:directoras},casa:{sofa:()=>ticketList('Serie'),pasillos:()=>pasillos('Serie'),ses:()=>REAL?planList():maratones()},cafe:{charla,crit:criticas}}[S.place][t]();
  return `<div class="venue"><button class="icon-btn back" data-act="placeback" aria-label="Volver a Comunidad">${ic('back',18)}</button>${scene(S.place)}<div class="vt"><small class="muted">${P.sub}</small><h1>${P.n}</h1></div></div>
  <div class="seg" role="group" aria-label="Secciones de ${P.n}">${P.tabs.map(([k,n])=>`<button aria-pressed="${t===k}" data-act="sub" data-v="${k}">${n}</button>`).join('')}</div>${body}`}
 const REASONS=['Spam o publicidad','Acoso o insultos','Contenido inapropiado','Spoiler sin marcar','Otro motivo'];
@@ -1250,7 +1250,7 @@ function load(){
   d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status==='En pausa'?'Viendo':l.status;s.ep=l.episode;s.review=l.review||'';try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
   d.posts.slice().reverse().forEach(p=>{if(POSTS.some(x=>x.k===p.id))return;const mine=p.liked>0;if(mine)S.liked.add(p.id);POSTS.unshift({k:p.id,u:p.handle,n:p.display,h:'@'+p.handle,t:ago(p.created_at),x:p.body,id:p.title_id,l:p.likes-(mine?1:0),c:p.comments||0,sp:!!p.spoiler})});
   d.titles.forEach(t=>{const s=byId(t.id);if(!s)return;s.fans=t.fans||0;if(t.fans>0)STATS[t.id]=[t.fans30||0,t.fans||0,t.avg?t.avg/20:0]});
-  PLANS.forEach(p=>{const t=byId(p.tid),nm=t?t.title:p.name;if(nm)PREM.push({date:p.date,id:t?p.tid:null,t:(p.kind==='quedada'?'Noche de peli: ':'Maratón: ')+nm,p:'Sesión juntas'+(p.time?' · '+p.time:''),i:100000+p.id})});
+  PLANS.forEach(p=>{const t=byId(p.tid),nm=t?t.title:p.name;if(nm)PREM.push({date:p.date,id:t?p.tid:null,t:'Sesión: '+nm,p:'Sesión juntas'+(p.time?' · '+p.time:''),i:100000+p.id})});
   const dm={};SHOWS.filter(s=>s.type==='Película'&&s.director).forEach(s=>String(s.director).split(/,| y /).map(x=>x.trim()).filter(Boolean).forEach(n=>{const o=dm[n]||(dm[n]={n,f:0,v:0});o.f++;o.v+=s.fans||0}));
   Object.values(dm).sort((a,b)=>b.v-a.v||b.f-a.f).slice(0,10).forEach(o=>DIRS.push(o));
   render();
