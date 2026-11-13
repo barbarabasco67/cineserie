@@ -39,12 +39,14 @@ svg{display:block}
 .btn[disabled]{opacity:.45;cursor:default}
 .chip{border:1px solid var(--line);background:transparent;padding:8px 14px;border-radius:999px;font:600 13px 'Nunito',sans-serif;cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+.dd{border:1px solid var(--line);border-radius:12px;margin:10px 0;background:var(--card)}.dd-h{width:100%;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:none;border:0;color:var(--text);cursor:pointer;text-align:left}.dd-h span{display:flex;flex-direction:column;gap:2px}.dd-h small{color:var(--soft);font:600 12px 'Nunito',sans-serif}.dd-h svg{transition:transform .2s;transform:rotate(90deg)}.dd-h[aria-expanded=true] svg{transform:rotate(-90deg)}.dd-b{padding:2px 14px 14px}
 .row-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .row-scroll::-webkit-scrollbar{display:none}
 .wrap{display:flex;gap:8px;flex-wrap:wrap}
 button:focus-visible,input:focus-visible{outline:2px solid var(--soft);outline-offset:2px}
 .icon-btn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:transparent;display:grid;place-items:center;cursor:pointer;flex:none}
 .poster{position:relative;aspect-ratio:2/3;border-radius:14px;overflow:hidden;background:#1d1510}
+.poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .poster svg{position:absolute;inset:0;width:100%;height:100%}
 .poster .pt{position:absolute;left:10px;right:10px;bottom:10px;font:700 15px/1.15 'Fraunces',serif;color:#fff7ef;text-shadow:0 1px 8px rgba(0,0,0,.55)}
 .poster.sm{border-radius:10px}.poster.sm .pt{display:none}
@@ -258,7 +260,7 @@ const ic=(n,s=20)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="no
 /* ---------- datos de ejemplo ---------- */
 const STATUS=['Quiero ver','Viendo','Vista','En pausa','Abandonada'];
 const PLATFORMS=['Netflix','Prime Video','Disney+','Max','Movistar+','Filmin','SkyShowtime','Apple TV+','RTVE Play','Atresplayer'];
-const MOODS=['Para llorar','Para desconectar','Slow burn','Enemies to lovers','Comfort','Para ver con amigas'];
+const MOODS=['Spicy','Slow burn','Enemies to lovers','Grumpy x sunshine','Forbidden love','Situationship','Dark romance','Plot twist','Girls night','Para llorar','Comfort','Cozy autumn','Hot girl summer','Main character energy'];
 const CATS=[
  {k:'llorar',n:'Llorar',i:'drop',c:'#8fc1f0'},{k:'reir',n:'Reír',i:'smile',c:'#f4cf7a'},
  {k:'tension',n:'Tensión',i:'bolt',c:'#f19a8a'},{k:'romance',n:'Romance',i:'heart',c:'#f08fa5'},
@@ -364,14 +366,17 @@ const POLL=[2,6,7], FRIENDS={Lucía:2,Marta:6,Irene:6}, AVC={Lucía:'#f4a97b',Ma
 /* ---------- estado ---------- */
 const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix','Prime Video','Filmin']),
  filter:'Todas',mood:null,mine:true,q:'',tonight:null,sheet:null,vote:null,owned:new Set(),
- dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
+ dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
+let REAL=false;
 const byId=id=>SHOWS.find(s=>s.id===id);
+const dd=(k,t,v,body)=>`<div class="dd"><button class="dd-h" aria-expanded="${S.dd===k}" data-act="dd" data-v="${k}"><span><b>${t}</b><small>${v}</small></span>${ic('chevron',16)}</button>${S.dd===k?`<div class="wrap dd-b">${body}</div>`:''}</div>`;
 const avail=s=>s.platforms.filter(p=>S.platforms.has(p));
 const $=s=>document.querySelector(s);
 const TABS=[['inicio','Inicio','home'],['videoclub','Videoclub','clapper'],['descubrir','Descubrir','compass'],['comunidad','Comunidad','people'],['perfil','Perfil','user']];
 
 /* ---------- piezas ---------- */
 function poster(s,cls=''){const h=s.hue,id=s.id;
+ if(s.poster)return `<div class="poster ${cls}"><img src="${s.poster}" alt="Póster de ${esc(s.title)}" loading="lazy"></div>`;
  return `<div class="poster ${cls}"><svg viewBox="0 0 100 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${h} 45% 30%)"/><stop offset="1" stop-color="hsl(${h+30} 40% 15%)"/></linearGradient></defs><rect width="100" height="150" fill="url(#g${id})"/><circle cx="${30+(id*17)%45}" cy="${34+(id*7)%16}" r="${9+(id%3)*2}" fill="hsl(${h+20} 70% 82%)" opacity=".85"/><path d="M0 108Q25 88 50 104T100 96V150H0z" fill="hsl(${h} 35% 22%)"/><path d="M0 124Q30 110 60 122T100 116V150H0z" fill="hsl(${h+10} 30% 13%)"/></svg><span class="pt">${s.title}</span></div>`}
 const platChips=s=>s.platforms.map(p=>`<span class="plat ${S.platforms.has(p)?'mine':''}">${S.platforms.has(p)?ic('check',12):''}${p}</span>`).join('');
 const pct=s=>s.eps?Math.round(s.ep/s.eps*100):0;
@@ -423,17 +428,16 @@ descubrir(){
  if(S.dtab==='noticias')return `<div class="top"><h1>Descubrir</h1></div>${seg}${newsView()}`;
  return `<div class="top"><h1>Descubrir</h1><button class="icon-btn" data-act="addopen" aria-label="Añadir un título">${ic('plus',18)}</button></div>${seg}
  <label class="search">${ic('search',18)}<input id="q" type="search" placeholder="Buscar series y películas" value="${esc(S.q)}" aria-label="Buscar"></label>
- <div class="row-scroll" role="group" aria-label="Ambiente">${MOODS.map(m=>`<button class="chip" aria-pressed="${S.mood===m}" data-act="mood" data-v="${m}">${m}</button>`).join('')}</div>
+ ${dd('cat','Categorías',S.mood||'Todas',MOODS.map(m=>`<button class="chip" aria-pressed="${S.mood===m}" data-act="mood" data-v="${m}">${m}</button>`).join(''))}
+ ${dd('plat','Plataformas',S.platforms.size?S.platforms.size+' elegidas':'Ninguna',PLATFORMS.map(p=>`<button class="chip" aria-pressed="${S.platforms.has(p)}" data-act="plat" data-v="${p}">${p}</button>`).join(''))}
  <button class="switch" role="switch" aria-checked="${S.mine}" data-act="mine"><span>Solo en mis plataformas</span><span class="tr"></span></button>
- <h3>Mis plataformas</h3>
- <div class="wrap">${PLATFORMS.map(p=>`<button class="chip" aria-pressed="${S.platforms.has(p)}" data-act="plat" data-v="${p}">${p}</button>`).join('')}</div>
  <h3>Para ti</h3><div class="card" style="padding:4px 16px" id="results">${results()}</div>`},
 
 comunidad(){
  if(S.place)return placeView();
  const comfort=SHOWS.filter(s=>s.status==='Vista'&&s.tags.includes('Comfort')).length;
  return `<div class="top"><div><p class="muted small">Tres sitios, una comunidad</p><h1>Comunidad</h1></div></div>
- ${['cine','casa','cafe'].map(k=>{const P=PLACES[k];return `<button class="place" data-act="place" data-v="${k}" aria-label="Entrar en ${P.n}">${scene(k)}<span class="pi"><b>${P.n}</b><span class="muted small">${P.d}</span><span class="tag" style="display:inline-block;margin-top:8px">${P.live}</span></span></button>`}).join('')}
+ ${['cine','casa','cafe'].map(k=>{const P=PLACES[k];return `<button class="place" data-act="place" data-v="${k}" aria-label="Entrar en ${P.n}">${scene(k)}<span class="pi"><b>${P.n}</b><span class="muted small">${P.d}</span>${REAL?'':`<span class="tag" style="display:inline-block;margin-top:8px">${P.live}</span>`}</span></button>`}).join('')}
  <div class="sec"><h2>Reto del mes</h2></div>
  <div class="card"><b>Tres comfort shows en noviembre</b><div class="bar" role="progressbar" aria-valuenow="${Math.min(comfort,3)}" aria-valuemin="0" aria-valuemax="3"><i style="width:${Math.min(comfort,3)/3*100}%"></i></div><p class="muted small" style="margin:8px 0 0">${Math.min(comfort,3)} de 3 · Premio: insignia de temporada</p></div>`},
 
@@ -490,22 +494,27 @@ function pasillos(type){
  const sel=gs.find(g=>g.k===S.genre);
  return `<div class="gen">${gs.map(g=>`<button class="gcell" aria-pressed="${S.genre===g.k}" data-act="genre" data-v="${g.k}">${ic(g.i,26)}<b>${g.k}</b><span class="muted small">${g.l.length} ${g.l.length>1?'títulos':'título'}</span></button>`).join('')}</div>
  ${sel?`<h3>${sel.k}</h3><div class="card" style="padding:4px 16px">${sel.l.map(li).join('')}</div>`:'<p class="muted small" style="margin-top:14px">Elige un pasillo para ver sus títulos.</p>'}`}
+const EMPTY=m=>`<div class="card"><p class="muted small" style="margin:0">${m}</p></div>`;
 function maratones(){
+ if(!CLUBS.length)return EMPTY('Aún no hay maratones. Pronto podrás organizar la primera.');
  return CLUBS.map((c,i)=>{const j=S.joined.has(i);return `<div class="card"><span class="tag">${c.w}</span><h2 style="font-size:18px;margin:10px 0 4px">${c.t}</h2><p class="muted small" style="margin:0">${c.p} · ${c.n+(j?1:0)} apuntadas</p><div class="wrap" style="margin-top:12px"><button class="btn ${j?'ghost':''}" data-act="join" data-v="${i}" aria-pressed="${j}">${j?ic('check',18)+'Apuntada':'Apuntarme'}</button><button class="btn ghost" data-act="open" data-id="${c.id}">Ver ficha</button></div></div>`}).join('')}
 function spoilers(){
  const s1=byId(1);
+ if(REAL||!s1)return EMPTY('Aquí aparecerán las reacciones por episodio, sin spoilers. Todavía no hay ninguna.');
  return `<div class="card"><p class="muted small" style="margin:0 0 6px">Reacciones a «${s1.title}». Vas por el episodio ${s1.ep}: el resto se desbloquea al verlo.</p>
  ${REACTIONS.map((r,i)=>{const ok=i<s1.ep;return `<div class="react ${ok?'':'locked'}"><span class="ep">${ok?i+1:ic('lock',14)}</span><span>${ok?`<b>${r[0]}</b><br>${r[1]}`:`<span class="muted">Ve el episodio ${i+1} para leerlo</span>`}</span></div>`}).join('')}</div>`}
 function directoras(){
+ if(!DIRS.length)return EMPTY('Pronto: directoras del momento.');
  return `<div class="seas"><h2>Directoras del momento</h2></div>${DIRS.map((d,i)=>`<div class="ticket" style="cursor:default"><span class="no">${i+1}</span><span class="grow"><b>${d.n}</b><span class="muted small">${d.f} ${d.f>1?'películas':'película'} en la plataforma · ${fmt(d.v)} espectadoras</span></span></div>`).join('')}`}
 function charla(){
  const s1=byId(1);
- return `<div class="card"><span class="tag">En el mismo capítulo</span><p style="margin:10px 0 0">Lucía, Marta e Irene también van por el episodio ${s1.ep} de «${s1.title}».</p><div class="avatars" style="margin-top:10px">${Object.keys(FRIENDS).map(n=>`<span class="av" style="background:${AVC[n]}">${n[0]}</span>`).join('')}</div></div>
+ return `${s1&&Object.keys(FRIENDS).length?`<div class="card"><span class="tag">En el mismo capítulo</span><p style="margin:10px 0 0">Lucía, Marta e Irene también van por el episodio ${s1.ep} de «${s1.title}».</p><div class="avatars" style="margin-top:10px">${Object.keys(FRIENDS).map(n=>`<span class="av" style="background:${AVC[n]}">${n[0]}</span>`).join('')}</div></div>`:''}
  <button class="btn block" style="margin:14px 0" data-act="postopen">${ic('plus',18)}Escribir en la charla</button>
  ${POSTS.map((p,i)=>{const sh=p.id?byId(p.id):null,lk=S.liked.has(p.k);return `<article class="post"><div class="ph"><span class="av2" style="background:${AVCOL[i%5]}">${p.u[0]}</span><span><b>${esc(p.u)}</b><br><span class="muted small">${esc(p.h)} · ${p.t}</span></span></div><p style="margin:10px 0">${esc(p.x)}</p>
   ${sh?`<button class="att" data-act="open" data-id="${sh.id}">${poster(sh,'sm')}<span class="grow"><span class="k">${sh.type}</span><b>${sh.title}</b><span class="muted small">${sh.year}</span></span>${ic('chevron',18)}</button>`:''}
   <div class="acts"><button class="act ${lk?'on':''}" data-act="like" data-v="${p.k}" aria-pressed="${lk}" aria-label="Me gusta">${ic('heart',18)}${p.l+(lk?1:0)}</button><button class="act" data-act="soon2" aria-label="Comentarios">${ic('chat',18)}${p.c}</button></div></article>`}).join('')}`}
 function quedadas(){
+ if(!POLL.length)return EMPTY('Aún no hay noches de peli. Cuando haya una, podrás votar con tus amigas.');
  const tot=Object.values(FRIENDS).length+(S.vote?1:0);
  const cnt=id=>Object.values(FRIENDS).filter(v=>v===id).length+(S.vote===id?1:0);
  const lead=Math.max(...POLL.map(cnt));
@@ -514,6 +523,7 @@ function quedadas(){
   return `<button class="vote" aria-pressed="${S.vote===id}" data-act="vote" data-id="${id}"><span class="fill" style="width:${w}%"></span><span class="in"><span><b>${s.title}</b><br><span class="muted small">${s.platforms.join(' · ')}</span></span>
   <span style="display:flex;align-items:center;gap:8px"><span class="avatars">${Object.keys(FRIENDS).filter(n=>FRIENDS[n]===id).map(n=>`<span class="av" style="background:${AVC[n]}">${n[0]}</span>`).join('')}${S.vote===id?`<span class="av" style="background:#fff3ea">Tú</span>`:''}</span>${c===lead?`<span class="tag">Gana</span>`:''}</span></span></button>`}).join('')}</div>`}
 function criticas(){
+ if(!CRIT.length)return EMPTY('Todavía no hay críticas. Las primeras reseñas aparecerán aquí.');
  const l=[...CRIT].sort((a,b)=>S.rev==='res'?b.v-a.v:b.f-a.f);
  return `<div class="seg" role="group" aria-label="Orden">${[['res','Más reseñas'],['seg','Más seguidas']].map(([k,n])=>`<button aria-pressed="${S.rev===k}" data-act="rev" data-v="${k}">${n}</button>`).join('')}</div>
  ${l.map((c,i)=>`<div class="ticket" style="cursor:default"><span class="no">${i+1}</span><span class="grow"><b>${c.n}</b><span class="muted small">${c.h}</span><span class="small" style="color:var(--soft)">${S.rev==='res'?c.v+' reseñas en 30 días':fmt(c.f)+' seguidoras'}</span></span></div>`).join('')}`}
@@ -617,6 +627,7 @@ document.addEventListener('click',e=>{
   case 'watch':watch(id);break;
   case 'surprise':surprise();break;
   case 'want':s.status='Quiero ver';toast('Añadida a Quiero ver');syncLib(s);render();break;
+  case 'dd':S.dd=S.dd===v?null:v;render();break;
   case 'mood':S.mood=S.mood===v?null:v;render();break;
   case 'mine':S.mine=!S.mine;render();break;
   case 'plat':S.platforms.has(v)?S.platforms.delete(v):S.platforms.add(v);render();break;
@@ -669,7 +680,8 @@ function syncLib(s){if(s.status)send('/library/'+s.id,'PUT',{status:s.status,epi
 const ago=d=>{const m=Math.max(0,Math.round((Date.now()-new Date(d.replace(' ','T')+'Z'))/60000));return m<2?'Ahora':m<60?`Hace ${m} min`:m<1440?`Hace ${Math.round(m/60)} h`:`Hace ${Math.round(m/1440)} d`};
 function load(){
  send('/state').then(d=>{
-  d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({id:t.id,title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
+  SHOWS.length=0;[GMAP,STATS,FRIENDS].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));[PREM,POSTS,CLUBS,POLL,DIRS,CRIT,NEWS].forEach(a=>a.length=0);REAL=true;
+  d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({id:t.id,poster:t.poster,title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
   d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status;s.ep=l.episode;try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
   d.posts.slice().reverse().forEach(p=>{if(POSTS.some(x=>x.k===p.id))return;const mine=p.liked>0;if(mine)S.liked.add(p.id);POSTS.unshift({k:p.id,u:p.handle,h:'@'+p.handle,t:ago(p.created_at),x:p.body,id:p.title_id,l:p.likes-(mine?1:0),c:0})});
   render();

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS titles (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
+  poster TEXT,
   type TEXT NOT NULL CHECK (type IN ('Serie','Película')),
   year INTEGER,
   episodes INTEGER NOT NULL DEFAULT 1,
