@@ -31,6 +31,9 @@ function migrate(env) {
     migrated = (async () => {
       const steps = [
         'ALTER TABLE news ADD COLUMN image TEXT',
+        "CREATE TABLE IF NOT EXISTS lists (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, name TEXT NOT NULL, descr TEXT, is_public INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+        "CREATE TABLE IF NOT EXISTS list_items (list_id INTEGER NOT NULL, title_id INTEGER NOT NULL, pos INTEGER NOT NULL DEFAULT 0, added_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (list_id, title_id))",
+        'ALTER TABLE posts ADD COLUMN list_id INTEGER',
         'ALTER TABLE users ADD COLUMN email TEXT',
         'ALTER TABLE users ADD COLUMN rec_hash TEXT',
         'ALTER TABLE users ADD COLUMN rec_salt TEXT',
@@ -161,7 +164,7 @@ async function handleApi(request, env, url) {
     ).bind(uid).all();
     const library = await env.DB.prepare('SELECT title_id, status, episode, ratings, review FROM library WHERE user_id = ?').bind(uid).all();
     const posts = await env.DB.prepare(
-      `SELECT p.id, p.body, p.title_id, p.created_at, p.spoiler, u.handle, u.display,
+      `SELECT p.id, p.body, p.title_id, p.created_at, p.spoiler, p.list_id, (SELECT name FROM lists li WHERE li.id = p.list_id AND li.is_public = 1) AS list_name, (SELECT COUNT(*) FROM list_items x WHERE x.list_id = p.list_id) AS list_n, u.handle, u.display,
         (SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id) AS comments,
         (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
         (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
@@ -303,13 +306,17 @@ async function handleApi(request, env, url) {
     if (visible) {
       const lib = await env.DB.prepare('SELECT title_id, status, episode, ratings, review, updated_at FROM library WHERE user_id = ? ORDER BY updated_at DESC LIMIT 200').bind(u.id).all();
       const posts = await env.DB.prepare(
-        `SELECT p.id, p.body, p.title_id, p.created_at, p.spoiler,
+        `SELECT p.id, p.body, p.title_id, p.created_at, p.spoiler, p.list_id, (SELECT name FROM lists li WHERE li.id = p.list_id AND li.is_public = 1) AS list_name, (SELECT COUNT(*) FROM list_items x WHERE x.list_id = p.list_id) AS list_n,
           (SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id) AS comments,
           (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
           (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
          FROM posts p WHERE p.user_id = ? ORDER BY p.id DESC LIMIT 30`
       ).bind(uid, u.id).all();
       out.library = lib.results; out.posts = posts.results;
+      const pl = await env.DB.prepare(`SELECT l.id, l.name, l.descr, l.is_public, (SELECT COUNT(*) FROM list_items x WHERE x.list_id = l.id) AS n,
+          (SELECT group_concat(title_id) FROM (SELECT title_id FROM list_items x WHERE x.list_id = l.id ORDER BY pos LIMIT 3)) AS covers
+        FROM lists l WHERE l.user_id = ? ${isMe ? '' : 'AND l.is_public = 1'} ORDER BY l.id DESC LIMIT 50`).bind(u.id).all();
+      out.lists = pl.results;
     }
     return json(out);
   }
@@ -364,8 +371,14 @@ async function handleApi(request, env, url) {
     const body = b && txt(b.body, 400);
     if (!body) return bad('mensaje vacío');
     const titleId = b.title_id ? Number(b.title_id) : null;
+    let listId = null;
+    if (b.list_id) {
+      const l = await env.DB.prepare('SELECT id FROM lists WHERE id = ? AND user_id = ? AND is_public = 1').bind(Number(b.list_id), uid).first();
+      if (!l) return bad('Esa lista no existe o es privada', 400);
+      listId = l.id;
+    }
     try {
-      const res = await env.DB.prepare('INSERT INTO posts (user_id, body, title_id, spoiler) VALUES (?, ?, ?, ?)').bind(uid, body, titleId, b.spoiler ? 1 : 0).run();
+      const res = await env.DB.prepare('INSERT INTO posts (user_id, body, title_id, spoiler, list_id) VALUES (?, ?, ?, ?, ?)').bind(uid, body, titleId, b.spoiler ? 1 : 0, listId).run();
       return json({ id: res.meta.last_row_id });
     } catch { return bad('título no encontrado', 404); }
   }
@@ -424,6 +437,73 @@ async function handleApi(request, env, url) {
     return json({ ok: true });
   }
 
+  if (path === '/lists' && method === 'GET') {
+    const r = await env.DB.prepare(`SELECT l.id, l.name, l.descr, l.is_public, (SELECT COUNT(*) FROM list_items x WHERE x.list_id = l.id) AS n,
+        (SELECT group_concat(title_id) FROM (SELECT title_id FROM list_items x WHERE x.list_id = l.id ORDER BY pos)) AS ids
+      FROM lists l WHERE l.user_id = ? ORDER BY l.id DESC LIMIT 50`).bind(uid).all();
+    return json({ lists: r.results });
+  }
+  if (path === '/lists' && method === 'POST') {
+    const b = await readBody(request);
+    const name = b && txt(b.name, 60);
+    if (!name) return bad('Ponle un nombre a la lista');
+    const cnt = await env.DB.prepare('SELECT COUNT(*) AS c FROM lists WHERE user_id = ?').bind(uid).first();
+    if (cnt.c >= 50) return bad('Has llegado al máximo de listas', 400);
+    const res = await env.DB.prepare('INSERT INTO lists (user_id, name, descr, is_public) VALUES (?, ?, ?, ?)').bind(uid, name, txt(b.descr, 200), b.is_public === false ? 0 : 1).run();
+    return json({ id: res.meta.last_row_id });
+  }
+  m = path.match(/^\/lists\/(\d+)(?:\/items(?:\/(\d+))?)?$/);
+  if (m) {
+    const id = Number(m[1]);
+    const L = await env.DB.prepare('SELECT l.id, l.user_id, l.name, l.descr, l.is_public, u.handle, u.display, u.is_private FROM lists l JOIN users u ON u.id = l.user_id WHERE l.id = ?').bind(id).first();
+    if (!L) return bad('Lista no encontrada', 404);
+    const mine = L.user_id === uid;
+    const isItems = path.includes('/items');
+    if (method === 'GET' && !isItems) {
+      let ok = mine;
+      if (!ok && L.is_public) {
+        const blocked = await env.DB.prepare('SELECT 1 AS x FROM blocks WHERE (blocker_id = ?1 AND blocked_id = ?2) OR (blocker_id = ?2 AND blocked_id = ?1)').bind(uid, L.user_id).first();
+        let seen = !L.is_private;
+        if (!seen) { const f = await env.DB.prepare("SELECT 1 AS x FROM follows WHERE follower_id = ? AND followed_id = ? AND status = 'accepted'").bind(uid, L.user_id).first(); seen = !!f; }
+        ok = !blocked && seen;
+      }
+      if (!ok) return bad('Lista no encontrada', 404);
+      const it = await env.DB.prepare('SELECT title_id FROM list_items WHERE list_id = ? ORDER BY pos, added_at').bind(id).all();
+      return json({ list: { id, name: L.name, descr: L.descr || '', is_public: !!L.is_public, mine, handle: L.handle, display: L.display || '' }, items: it.results.map((x) => x.title_id) });
+    }
+    if (!mine) return bad('No es tu lista', 403);
+    if (!isItems && method === 'PUT') {
+      const b = await readBody(request) || {};
+      if (typeof b.name === 'string' && txt(b.name, 60)) await env.DB.prepare('UPDATE lists SET name = ? WHERE id = ?').bind(txt(b.name, 60), id).run();
+      if (typeof b.descr === 'string') await env.DB.prepare('UPDATE lists SET descr = ? WHERE id = ?').bind(txt(b.descr, 200), id).run();
+      if (typeof b.is_public === 'boolean') {
+        await env.DB.prepare('UPDATE lists SET is_public = ? WHERE id = ?').bind(b.is_public ? 1 : 0, id).run();
+        if (!b.is_public) await env.DB.prepare('UPDATE posts SET list_id = NULL WHERE list_id = ?').bind(id).run();
+      }
+      return json({ ok: true });
+    }
+    if (!isItems && method === 'DELETE') {
+      await env.DB.prepare('DELETE FROM list_items WHERE list_id = ?').bind(id).run();
+      await env.DB.prepare('UPDATE posts SET list_id = NULL WHERE list_id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM lists WHERE id = ?').bind(id).run();
+      return json({ ok: true });
+    }
+    if (isItems && method === 'POST') {
+      const b = await readBody(request);
+      const tid = Number(b && b.title_id);
+      if (!tid) return bad('título no válido');
+      const t = await env.DB.prepare('SELECT 1 AS x FROM titles WHERE id = ?').bind(tid).first();
+      if (!t) return bad('título no encontrado', 404);
+      const c = await env.DB.prepare('SELECT COUNT(*) AS c, COALESCE(MAX(pos), 0) AS mx FROM list_items WHERE list_id = ?').bind(id).first();
+      if (c.c >= 100) return bad('La lista está llena (100 títulos)', 400);
+      await env.DB.prepare('INSERT OR IGNORE INTO list_items (list_id, title_id, pos) VALUES (?, ?, ?)').bind(id, tid, c.mx + 1).run();
+      return json({ ok: true });
+    }
+    if (isItems && method === 'DELETE' && m[2]) {
+      await env.DB.prepare('DELETE FROM list_items WHERE list_id = ? AND title_id = ?').bind(id, Number(m[2])).run();
+      return json({ ok: true });
+    }
+  }
   if (path === '/reports' && method === 'POST') {
     const b = await readBody(request);
     const kind = b && ['post', 'comment', 'user'].includes(b.kind) ? b.kind : '';

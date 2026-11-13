@@ -144,3 +144,19 @@ CREATE TABLE IF NOT EXISTS plan_msgs (
   body TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS lists (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  descr TEXT,
+  is_public INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS list_items (
+  list_id INTEGER NOT NULL,
+  title_id INTEGER NOT NULL,
+  pos INTEGER NOT NULL DEFAULT 0,
+  added_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (list_id, title_id)
+);
