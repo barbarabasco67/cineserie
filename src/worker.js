@@ -35,6 +35,8 @@ function migrate(env) {
         'ALTER TABLE users ADD COLUMN pass_hash TEXT',
         'ALTER TABLE users ADD COLUMN pass_salt TEXT',
         'ALTER TABLE library ADD COLUMN review TEXT',
+        'ALTER TABLE users ADD COLUMN avatar TEXT',
+        'ALTER TABLE users ADD COLUMN banner TEXT',
         'ALTER TABLE users ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0',
         "ALTER TABLE follows ADD COLUMN status TEXT NOT NULL DEFAULT 'accepted'",
         'CREATE TABLE IF NOT EXISTS follows (follower_id TEXT NOT NULL REFERENCES users(id), followed_id TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), PRIMARY KEY (follower_id, followed_id))',
@@ -47,13 +49,13 @@ function migrate(env) {
 }
 const HANDLE = /^[a-z0-9_.]{3,20}$/;
 async function meInfo(env, uid) {
-  const u = await env.DB.prepare('SELECT id, handle, display, bio, pass_hash, is_private FROM users WHERE id = ?').bind(uid).first();
+  const u = await env.DB.prepare('SELECT id, handle, display, bio, pass_hash, is_private, avatar, banner FROM users WHERE id = ?').bind(uid).first();
   const f = await env.DB.prepare(
     `SELECT (SELECT COUNT(*) FROM follows WHERE followed_id = ?1 AND status = 'accepted') AS followers,
             (SELECT COUNT(*) FROM follows WHERE follower_id = ?1 AND status = 'accepted') AS following,
             (SELECT COUNT(*) FROM follows WHERE followed_id = ?1 AND status = 'pending') AS requests`
   ).bind(uid).first();
-  return { handle: u.handle, display: u.display || '', bio: u.bio || '', has_pass: !!u.pass_hash, is_private: !!u.is_private, followers: f.followers, following: f.following, requests: f.requests };
+  return { handle: u.handle, display: u.display || '', bio: u.bio || '', avatar: u.avatar || '', banner: u.banner || '', has_pass: !!u.pass_hash, is_private: !!u.is_private, followers: f.followers, following: f.following, requests: f.requests };
 }
 
 async function readBody(request) {
@@ -141,6 +143,18 @@ async function handleApi(request, env, url) {
     return json(await meInfo(env, uid));
   }
 
+  if (path === '/media' && method === 'PUT') {
+    const b = await readBody(request);
+    if (!b) return bad('cuerpo no válido');
+    const ok = (v, max) => v === '' || (typeof v === 'string' && v.length <= max && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v));
+    for (const [k, max] of [['avatar', 90000], ['banner', 220000]]) {
+      if (b[k] === undefined) continue;
+      if (!ok(b[k], max)) return bad('La imagen no es válida o pesa demasiado');
+      await env.DB.prepare('UPDATE users SET ' + k + ' = ? WHERE id = ?').bind(b[k] || null, uid).run();
+    }
+    return json(await meInfo(env, uid));
+  }
+
   if (path === '/password' && method === 'POST') {
     const b = await readBody(request);
     const pw = b && typeof b.password === 'string' ? b.password : '';
@@ -154,7 +168,7 @@ async function handleApi(request, env, url) {
 
   m = path.match(/^\/profile\/([a-z0-9_.]{3,20})(?:\/(followers|following))?$/);
   if (m && method === 'GET') {
-    const u = await env.DB.prepare('SELECT id, handle, display, bio, created_at, is_private FROM users WHERE handle = ?').bind(m[1]).first();
+    const u = await env.DB.prepare('SELECT id, handle, display, bio, created_at, is_private, avatar, banner FROM users WHERE handle = ?').bind(m[1]).first();
     if (!u) return bad('Perfil no encontrado', 404);
     const rel = await env.DB.prepare('SELECT status FROM follows WHERE follower_id = ? AND followed_id = ?').bind(uid, u.id).first();
     const isMe = u.id === uid;
@@ -173,7 +187,7 @@ async function handleApi(request, env, url) {
               (SELECT COUNT(*) FROM follows WHERE follower_id = ?1 AND status = 'accepted') AS following,
               (SELECT COUNT(*) FROM follows WHERE follower_id = ?1 AND followed_id = ?2 AND status = 'accepted') AS follows_me`
     ).bind(u.id, uid).first();
-    const out = { user: { handle: u.handle, display: u.display || '', bio: u.bio || '', joined: u.created_at }, followers: f.followers, following: f.following, is_me: isMe, is_private: !!u.is_private, visible: !!visible, status: rel ? rel.status : null, follows_me: f.follows_me > 0, library: [], posts: [] };
+    const out = { user: { handle: u.handle, display: u.display || '', bio: u.bio || '', avatar: u.avatar || '', banner: u.banner || '', joined: u.created_at }, followers: f.followers, following: f.following, is_me: isMe, is_private: !!u.is_private, visible: !!visible, status: rel ? rel.status : null, follows_me: f.follows_me > 0, library: [], posts: [] };
     if (visible) {
       const lib = await env.DB.prepare('SELECT title_id, status, episode, ratings, review, updated_at FROM library WHERE user_id = ? ORDER BY updated_at DESC LIMIT 200').bind(u.id).all();
       const posts = await env.DB.prepare(

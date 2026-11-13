@@ -259,14 +259,11 @@ select{width:100%;background:var(--card);border:1px solid var(--line);border-rad
 .toast{transition:opacity .3s,transform .4s cubic-bezier(.2,.9,.25,1)}
 
 /* ---------- apertura: cortinas de cine ---------- */
-.splash{position:absolute;inset:0;z-index:50;overflow:hidden}
-.splash .cl,.splash .cr{position:absolute;top:0;bottom:0;width:50.4%;will-change:transform;
- background:linear-gradient(180deg,rgba(0,0,0,.6),transparent 26%,transparent 72%,rgba(0,0,0,.65)),repeating-linear-gradient(90deg,#4a1c0c 0 12px,#7d3414 12px 30px,#5e2410 30px 44px)}
-.splash .cl{left:0;box-shadow:12px 0 36px rgba(0,0,0,.55);animation:cur-l 1.25s .75s cubic-bezier(.76,0,.24,1) forwards}
-.splash .cr{right:0;box-shadow:-12px 0 36px rgba(0,0,0,.55);animation:cur-r 1.25s .75s cubic-bezier(.76,0,.24,1) forwards}
-.splash .seam{position:absolute;left:50%;top:0;bottom:0;width:3px;margin-left:-1.5px;background:linear-gradient(180deg,transparent,rgba(var(--acc-rgb),.95),transparent);box-shadow:0 0 28px 10px rgba(var(--acc-rgb),.55);animation:seam 1.2s ease both}
-@keyframes cur-l{to{transform:translateX(-102%)}}@keyframes cur-r{to{transform:translateX(102%)}}
-@keyframes seam{0%{opacity:0;transform:scaleY(.2)}35%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
+.splash{position:absolute;inset:0;z-index:50;overflow:hidden;pointer-events:none;animation:sfade .35s 1.85s ease forwards}
+@property --r{syntax:'<percentage>';inherits:false;initial-value:0%}
+.splash .ir{position:absolute;inset:0;background:radial-gradient(circle at 50% 46%,transparent var(--r),rgba(var(--acc-rgb),.95) calc(var(--r) + .6%),rgba(var(--acc-rgb),.25) calc(var(--r) + 2.5%),transparent calc(var(--r) + 7%)),radial-gradient(circle at 50% 46%,transparent var(--r),#0d0805 calc(var(--r) + .6%));animation:iris 1.5s .35s cubic-bezier(.7,0,.2,1) forwards}
+@keyframes iris{from{--r:0%}to{--r:112%}}
+@keyframes sfade{to{opacity:0}}
 .app.opening #screen,.app.opening .tabs{animation:unveil 1.6s .6s cubic-bezier(.2,.8,.2,1) both}
 @keyframes unveil{from{opacity:.25;transform:scale(1.05)}to{opacity:1;transform:none}}
 /* ---------- aspecto ---------- */
@@ -286,7 +283,8 @@ html.calm *,html.calm *::before,html.calm *::after{animation:none!important;tran
 [data-theme="light"] .sheet{box-shadow:0 -10px 40px rgba(60,40,20,.18)}
 /* ---------- perfil social y ajustes ---------- */
 .pf-head{position:relative;border-radius:22px;overflow:hidden;background:var(--card);border:1px solid var(--line);margin-bottom:16px}
-.pf-banner{height:92px;background:linear-gradient(120deg,rgba(var(--acc-rgb),.6),rgba(var(--acc-rgb),.08) 75%),var(--card2)}
+.mediaed{margin:4px 0 6px}.me-ban{height:92px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(120deg,rgba(var(--acc-rgb),.5),rgba(var(--acc-rgb),.08)) center/cover;display:flex;align-items:flex-end;justify-content:flex-end;padding:8px}.me-row{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}.me-row .pf-ava{border-width:3px}
+.pf-banner{height:112px;background:linear-gradient(120deg,rgba(var(--acc-rgb),.6),rgba(var(--acc-rgb),.08) 75%),var(--card2)}
 .pf-nav{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;z-index:2}
 .pf-nav .icon-btn{background:rgba(0,0,0,.35);border-color:rgba(255,255,255,.18);color:#fff}
 #screen>.pf-nav{position:static;margin-bottom:12px}
@@ -309,7 +307,7 @@ html.calm *,html.calm *::before,html.calm *::after{animation:none!important;tran
 </head>
 <body>
 <div class="app" id="app">
-  <div class="splash" id="splash" aria-hidden="true"><i class="cl"></i><i class="cr"></i><i class="seam"></i></div>
+  <div class="splash" id="splash" aria-hidden="true"><i class="ir"></i></div>
   <main id="screen" aria-live="polite"></main>
   <nav class="tabs" id="tabs" aria-label="Navegación principal"></nav>
   <div class="backdrop" id="backdrop" data-act="close"></div>
@@ -346,6 +344,8 @@ trophy:'<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5v1.5A3 3 0 0 0 8 10.5M16 6h3v1.5a3
 tv:'<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>',
 chevron:'<path d="M9 6l6 6-6 6"/>',
 bell:'<path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/>',
+image:'<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/>',
+gear:'<circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
 sliders:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
 key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>',
 login:'<path d="M10 17l5-5-5-5M15 12H4M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5"/>',
@@ -538,9 +538,9 @@ function profileView(){
  const slot=(l,i)=>`<div><small>${l}</small>${i?`<button data-act="open" data-id="${i.s.id}" aria-label="${l}: ${esc(i.s.title)}">${poster(i.s,'sm')}</button><span class="sn">${esc(i.s.title)}</span>`:'<div class="e">Vacío</div>'}</div>`;
  const revs=items.filter(i=>(i.r&&i.r.score>0)||i.review);
  const ini=(nameOf(U)[0]||'?').toUpperCase();
- const head=`<div class="pf-head"><div class="pf-banner"></div>
-  <div class="pf-nav">${isMe?'<span></span>':`<button class="icon-btn" data-act="pback" aria-label="Volver">${ic('back',18)}</button>`}${isMe?`<button class="icon-btn" data-act="ajustes" aria-label="Ajustes">${ic('sliders',18)}</button>`:'<span></span>'}</div>
-  <div class="pf-body"><div class="pf-top"><span class="pf-ava">${esc(ini)}</span>${isMe?`<button class="btn ghost" data-act="useropen">${ic('brush',15)}Editar perfil</button>`:`<button class="btn ${isF||pend?'ghost':''}" data-act="follow" data-v="${esc(U.handle)}">${isF?ic('check',15)+'Siguiendo':pend?ic('clock',15)+'Pendiente':ic('plus',15)+(PROF[U.handle]&&PROF[U.handle].is_private?'Solicitar':'Seguir')}</button>`}</div>
+ const head=`<div class="pf-head"><div class="pf-banner"${U.banner?` style="background-image:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.35)),url(${U.banner});background-size:cover;background-position:center"`:''}></div>
+  <div class="pf-nav">${isMe?'<span></span>':`<button class="icon-btn" data-act="pback" aria-label="Volver">${ic('back',18)}</button>`}${isMe?`<button class="icon-btn" data-act="ajustes" aria-label="Ajustes" style="width:44px;height:44px">${ic('gear',26)}</button>`:'<span></span>'}</div>
+  <div class="pf-body"><div class="pf-top"><span class="pf-ava"${U.avatar?` style="background:url(${U.avatar}) center/cover"`:''}>${U.avatar?'':esc(ini)}</span>${isMe?`<button class="btn ghost" data-act="useropen">${ic('brush',15)}Editar perfil</button>`:`<button class="btn ${isF||pend?'ghost':''}" data-act="follow" data-v="${esc(U.handle)}">${isF?ic('check',15)+'Siguiendo':pend?ic('clock',15)+'Pendiente':ic('plus',15)+(PROF[U.handle]&&PROF[U.handle].is_private?'Solicitar':'Seguir')}</button>`}</div>
   <h1 class="pf-name">${esc(nameOf(U))}${(isMe?me.is_private:PROF[U.handle]&&PROF[U.handle].is_private)?`<span class="lock" title="Perfil privado">${ic('lock',16)}</span>`:''}</h1><div class="muted small">@${esc(U.handle)}${!isMe&&PROF[U.handle]&&PROF[U.handle].follows_me?' <span class="tag">Te sigue</span>':''}</div>${U.bio?`<p class="pf-bio">${esc(U.bio)}</p>`:(isMe?`<p class="pf-bio muted">Añade una frase sobre ti en «Editar perfil».</p>`:'')}
   <div class="pf-stats"><div><b>${vis?revs.length:'–'}</b><span>Reseñas</span></div><button data-act="flist" data-v="followers" data-h="${esc(U.handle)}" ${vis?'':'disabled'}><b>${flw}</b><span>Seguidores</span></button><button data-act="flist" data-v="following" data-h="${esc(U.handle)}" ${vis?'':'disabled'}><b>${fng}</b><span>Siguiendo</span></button></div></div>
   ${vis?`<div class="strip pf-strip">${slot('Última',last)}${slot('Ahora',cur)}${slot('Próxima',nxt)}</div>`:''}</div>`;
@@ -584,6 +584,8 @@ function reqsHTML(){const r=S.reqs;
  ${r===null||r===undefined?'<p class="muted" style="margin-top:16px">Cargando…</p>':r.length?`<div style="margin-top:8px">${r.map(u=>`<div class="list-item" style="cursor:default">${avMini(u)}<span class="grow"><b>${esc(nameOf(u))}</b><span class="muted small">@${esc(u.handle)}</span></span><button class="btn" data-act="reqok" data-v="${esc(u.handle)}">Aceptar</button><button class="btn ghost" data-act="reqno" data-v="${esc(u.handle)}">Rechazar</button></div>`).join('')}</div>`:'<p class="muted" style="margin-top:16px">No tienes solicitudes pendientes.</p>'}`}
 function userHTML(){const me=ME();
  return `<div class="sheet-head"><div class="grow"><h2>Perfil público</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ <div class="mediaed"><div class="me-ban"${me.banner?` style="background-image:url(${me.banner})"`:''}><button class="btn ghost" data-act="pickimg" data-v="banner">${ic('image',15)}Cambiar banner</button></div>
+ <div class="me-row"><span class="pf-ava" style="width:64px;height:64px;font-size:26px;${me.avatar?`background:url(${me.avatar}) center/cover`:''}">${me.avatar?'':esc((nameOf(me)[0]||'?').toUpperCase())}</span><button class="btn ghost" data-act="pickimg" data-v="avatar">${ic('image',15)}Cambiar foto</button>${me.avatar||me.banner?`<button class="btn ghost" data-act="rmimg">Quitar fotos</button>`:''}</div></div>
  <label class="fld"><span>Nombre que se ve</span><input id="u-name" value="${esc(me.display||'')}" maxlength="30" autocomplete="off"></label>
  <label class="fld"><span>Nombre de usuario</span><input id="u-handle" value="${esc(me.handle)}" maxlength="20" autocomplete="off" autocapitalize="none"></label>
  <p class="muted small" style="margin:6px 0 0">De 3 a 20 letras minúsculas, números, punto o guion bajo.</p>
@@ -892,6 +894,8 @@ document.addEventListener('click',e=>{
   case 'flist':{const h=a.dataset.h;S.flist={h,kind:v,users:null};S.sheet='flist';updateSheet();send('/profile/'+h+'/'+v).then(r=>{S.flist.users=r.users;updateSheet()}).catch(()=>{S.flist.users=[];updateSheet()});break}
   case 'reqopen':S.reqs=null;S.sheet='reqs';updateSheet();send('/requests').then(r=>{S.reqs=r.requests;updateSheet()}).catch(()=>{S.reqs=[];updateSheet()});break
   case 'reqok':case 'reqno':send('/requests/'+v,a.dataset.act==='reqok'?'POST':'DELETE').then(r=>{S.me={...S.me,...r};S.reqs=(S.reqs||[]).filter(u=>u.handle!==v);toast(a.dataset.act==='reqok'?'Solicitud aceptada':'Solicitud rechazada');render()}).catch(()=>toast('Inténtalo otra vez'));break
+  case 'pickimg':{let f=document.getElementById('imgfile');if(!f){f=document.createElement('input');f.type='file';f.accept='image/*';f.id='imgfile';f.hidden=true;document.body.appendChild(f)}f.value='';f.onchange=()=>{const file=f.files&&f.files[0];if(!file)return;const kind=v;const im=new Image(),url=URL.createObjectURL(file);im.onload=()=>{const W=kind==='avatar'?320:960,H=kind==='avatar'?320:340,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d'),k=Math.max(W/im.width,H/im.height),w=im.width*k,h=im.height*k;x.fillStyle='#000';x.fillRect(0,0,W,H);x.drawImage(im,(W-w)/2,(H-h)/2,w,h);URL.revokeObjectURL(url);let q=.82,d=c.toDataURL('image/jpeg',q);const lim=kind==='avatar'?85000:210000;while(d.length>lim&&q>.3){q-=.1;d=c.toDataURL('image/jpeg',q)}send('/media','PUT',{[kind]:d}).then(r=>{S.me={...S.me,...r};updateSheet();render();toast(kind==='avatar'?'Foto actualizada':'Banner actualizado')}).catch(()=>toast('No se pudo subir la imagen'))};im.onerror=()=>toast('No se pudo leer la imagen');im.src=url};f.click();break}
+  case 'rmimg':send('/media','PUT',{avatar:'',banner:''}).then(r=>{S.me={...S.me,...r};updateSheet();render();toast('Fotos quitadas')}).catch(()=>toast('Inténtalo otra vez'));break
   case 'privtoggle':send('/privacy','PUT',{private:!ME().is_private}).then(r=>{S.me={...S.me,...r};toast(r.is_private?'Tu perfil ahora es privado':'Tu perfil ahora es público');render()}).catch(()=>toast('Inténtalo otra vez'));break
   case 'useropen':S.sheet='user';updateSheet();break;
   case 'passopen':S.sheet='pass';updateSheet();break;
@@ -941,7 +945,7 @@ function load(){
  }).catch(()=>{});
 }
 fromHash();render(true);load();
-(()=>{const sp=document.getElementById('splash');if(!sp)return;const red=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;if(red||TH.calm){sp.remove();return}$('#app').classList.add('opening');setTimeout(()=>{sp.remove();$('#app').classList.remove('opening')},2100)})();
+(()=>{const sp=document.getElementById('splash');if(!sp)return;const red=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;if(red||TH.calm){sp.remove();return}$('#app').classList.add('opening');setTimeout(()=>{sp.remove();$('#app').classList.remove('opening')}, 2300)})();
 </script>
 </body>
 </html>
