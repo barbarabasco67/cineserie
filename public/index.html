@@ -83,6 +83,8 @@ svg{display:block}
 @keyframes hang{from{transform:rotate(-.7deg)}to{transform:rotate(.7deg)}}
 .plight::after{animation:flick 5s ease-in-out infinite alternate}@keyframes flick{0%,100%{opacity:1}45%{opacity:.78}55%{opacity:.95}}
 @media (prefers-reduced-motion:reduce){.vwall,.vwall::before,.vwall::after,.wfr,.plight::after{animation:none}}
+.fbar{display:flex;gap:8px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none;margin:2px 0 4px}.fbar::-webkit-scrollbar{display:none}
+.fchip{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:99px;border:1px solid var(--line);background:transparent;color:inherit;font:700 13px var(--fb);cursor:pointer;white-space:nowrap}.fchip svg{transform:rotate(90deg);opacity:.7}.fchip.on{border-color:var(--accent);color:var(--accent);background:rgba(var(--acc-rgb),.12)}.fchip:active{transform:scale(.96)}
 .nprog{display:flex;gap:6px;margin:14px 0 4px}.nprog i{flex:1;height:4px;border-radius:9px;background:var(--line)}.nprog i.on{background:var(--accent)}
 .nopts{display:grid;gap:10px;margin-top:12px}.nopt{display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--card2);color:inherit;font:inherit;cursor:pointer;transition:transform .15s,border-color .2s}.nopt:active{transform:scale(.98)}.nopt:hover{border-color:var(--accent)}.nopt .si{color:var(--accent);display:grid}
 .chip{border:1px solid var(--line);background:transparent;padding:5px 11px;border-radius:999px;font:600 12px var(--fb);cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
@@ -739,10 +741,12 @@ descubrir(){
  return `<div class="top"><h1>Descubrir</h1><button class="icon-btn" data-act="addopen" aria-label="Añadir un título">${ic('plus',18)}</button></div>${seg}
  <label class="search">${ic('search',18)}<input id="q" type="search" placeholder="Buscar series y películas" value="${esc(S.q)}" aria-label="Buscar"></label>
  <div class="seg3" role="group" aria-label="Tipo">${[[null,'Todo'],['Película','Películas'],['Serie','Series']].map(([k,n])=>`<button aria-pressed="${S.kind===k}" data-act="kind" data-v="${k||''}">${n}</button>`).join('')}</div>
- ${dd('cat','Categorías',S.mood||'Todas',MOODS.map(m=>`<button class="chip" aria-pressed="${S.mood===m}" data-act="mood" data-v="${m}">${m}</button>`).join(''))}
- ${dd('coll','Colecciones',S.coll?COLLS.find(c=>c[0]===S.coll)[1]:'Todas',COLLS.map(([k,n])=>`<button class="chip" aria-pressed="${S.coll===k}" data-act="coll" data-v="${k}">${n} · ${SHOWS.filter(x=>(x.coll||[]).includes(k)).length}</button>`).join(''))}
- ${dd('plat','Plataformas',S.platforms.size?S.platforms.size+' elegidas':'Ninguna',PLATFORMS.map(p=>`<button class="chip" aria-pressed="${S.platforms.has(p)}" data-act="plat" data-v="${p}">${p}</button>`).join(''))}
- <button class="switch" role="switch" aria-checked="${S.mine}" data-act="mine"><span>Solo en mis plataformas</span><span class="tr"></span></button>
+ <div class="fbar" role="group" aria-label="Filtros">
+  <button class="fchip ${S.mood?'on':''}" data-act="fopen" data-v="cat">${S.mood||'Categorías'}${ic('chevron',14)}</button>
+  <button class="fchip ${S.coll?'on':''}" data-act="fopen" data-v="coll">${S.coll?COLLS.find(c=>c[0]===S.coll)[1]:'Colecciones'}${ic('chevron',14)}</button>
+  <button class="fchip ${S.platforms.size?'on':''}" data-act="fopen" data-v="plat">${S.platforms.size?'Plataformas · '+S.platforms.size:'Plataformas'}${ic('chevron',14)}</button>
+  <button class="fchip ${S.mine?'on':''}" role="switch" aria-checked="${S.mine}" data-act="mine">${S.mine?ic('check',14):''}Solo mis plataformas</button>
+ </div>
  <h3>Para ti</h3><div class="card" style="padding:4px 16px" id="results">${results()}</div>`},
 
 comunidad(){
@@ -882,6 +886,13 @@ function addHTML(){const d=S.draft;
  <h3>Ambiente</h3><div class="wrap">${MOODS.map(m=>`<button class="chip" aria-pressed="${d.tags.has(m)}" data-act="dtag" data-v="${m}">${m}</button>`).join('')}</div>
  <button class="switch" role="switch" aria-checked="${d.propose}" data-act="dprop" style="margin-top:18px"><span>Proponer para el catálogo común<br><span class="muted small">Lo revisamos antes de publicarlo para todas.</span></span><span class="tr"></span></button>
  <button class="btn block" style="margin-top:14px" data-act="save">Guardar en mi videoclub</button>`}
+function filtHTML(){const k=S.fk;
+ const T={cat:'Categorías',coll:'Colecciones',plat:'Plataformas'}[k]||'';
+ const body=k==='cat'?`<button class="chip" aria-pressed="${!S.mood}" data-act="mood" data-v="">Todas</button>`+MOODS.map(m=>`<button class="chip" aria-pressed="${S.mood===m}" data-act="mood" data-v="${m}">${m}</button>`).join('')
+  :k==='coll'?`<button class="chip" aria-pressed="${!S.coll}" data-act="coll" data-v="">Todas</button>`+COLLS.map(([c,n])=>`<button class="chip" aria-pressed="${S.coll===c}" data-act="coll" data-v="${c}">${n} · ${SHOWS.filter(x=>(x.coll||[]).includes(c)).length}</button>`).join('')
+  :PLATFORMS.map(p=>`<button class="chip" aria-pressed="${S.platforms.has(p)}" data-act="plat" data-v="${p}">${p}</button>`).join('');
+ return `<div class="sheet-head"><div class="grow"><h2>${T}</h2>${k==='plat'?'<p class="muted small" style="margin:2px 0 0">Marca las que tienes contratadas.</p>':''}</div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ <div class="wrap" style="margin-top:14px">${body}</div><div style="margin-top:18px"><button class="btn block" data-act="close">Listo</button></div>`}
 function styleHTML(){
  return `<div class="sheet-head"><div class="grow"><h2>Personalizar videoclub</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  <h3>Estilo</h3><div class="wrap">${[['estanteria','Estantería'],['cuadricula','Cuadrícula'],['compacto','Compacto']].map(([k,n])=>`<button class="chip" aria-pressed="${S.vstyle===k}" data-act="vstyle" data-v="${k}">${n}</button>`).join('')}</div>
@@ -894,7 +905,7 @@ function updateTabs(){const t=$('#tabs');if(!t.dataset.ready){t.innerHTML='<i cl
  [...t.querySelectorAll('button')].forEach((b,i)=>{const on=TABS[i][0]===S.tab;if(on&&b.getAttribute('aria-current')!=='page'){b.setAttribute('aria-current','page');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');t.style.setProperty('--i',i)}else if(!on)b.removeAttribute('aria-current')})}
 function updateSheet(){
  const sh=$('#sheet'),top=sh.scrollTop,was=sh.classList.contains('on');
- if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
+ if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
  if(!was&&S.sheet!==null){sh.classList.add('fresh');setTimeout(()=>sh.classList.remove('fresh'),800)}
  sh.classList.toggle('on',S.sheet!==null);$('#backdrop').classList.toggle('on',S.sheet!==null);
 }
@@ -998,10 +1009,11 @@ document.addEventListener('click',e=>{
   case 'want':s.status='Quiero ver';toast('Añadida a Quiero ver');syncLib(s);render();break;
   case 'kind':S.kind=v||null;render();break;
   case 'dd':S.dd=S.dd===v?null:v;render();break;
-  case 'coll':S.coll=S.coll===v?null:v;render();break;
-  case 'mood':S.mood=S.mood===v?null:v;render();break;
+  case 'coll':S.coll=(!v||S.coll===v)?null:v;S.sheet=null;updateSheet();render();break;
+  case 'mood':S.mood=(!v||S.mood===v)?null:v;S.sheet=null;updateSheet();render();break;
   case 'mine':S.mine=!S.mine;render();break;
-  case 'plat':S.platforms.has(v)?S.platforms.delete(v):S.platforms.add(v);render();break;
+  case 'plat':S.platforms.has(v)?S.platforms.delete(v):S.platforms.add(v);render();updateSheet();break;
+  case 'fopen':S.fk=v;S.sheet='filt';updateSheet();break;
   case 'vote':S.vote=S.vote===id?null:id;render();break;
   case 'place':S.place=v;S.genre=null;render(true);break;
   case 'placeback':S.place=null;S.genre=null;render(true);break;
