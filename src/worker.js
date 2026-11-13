@@ -26,7 +26,7 @@ async function handleApi(request, env, url) {
 
   if (path === '/state' && method === 'GET') {
     const titles = await env.DB.prepare(
-      "SELECT id, title, type, year, episodes, minutes, synopsis, genre, hue, platforms, tags, poster, director, writers, release_date, age, source, review_status FROM titles WHERE (owner_id = ? OR review_status = 'approved')"
+      "SELECT id, title, type, year, episodes, minutes, synopsis, genre, hue, platforms, tags, poster, director, writers, release_date, age, source, review_status,\n        (SELECT ROUND(AVG(json_extract(l.ratings, '$.score'))) FROM library l WHERE l.title_id = titles.id AND json_extract(l.ratings, '$.score') > 0) AS avg,\n        (SELECT COUNT(*) FROM library l WHERE l.title_id = titles.id AND json_extract(l.ratings, '$.score') > 0) AS votes\n       FROM titles WHERE (owner_id = ? OR review_status = 'approved')"
     ).bind(uid).all();
     const library = await env.DB.prepare('SELECT title_id, status, episode, ratings FROM library WHERE user_id = ?').bind(uid).all();
     const posts = await env.DB.prepare(
@@ -35,7 +35,13 @@ async function handleApi(request, env, url) {
         (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
        FROM posts p JOIN users u ON u.id = p.user_id ORDER BY p.id DESC LIMIT 50`
     ).bind(uid).all();
-    return json({ me, titles: titles.results, library: library.results, posts: posts.results });
+    const weekly = await env.DB.prepare(
+      `SELECT title_id, ROUND(AVG(score)) AS avg, COUNT(*) AS votes FROM (
+         SELECT title_id, json_extract(ratings, '$.score') AS score FROM library
+         WHERE updated_at >= datetime('now', '-7 days') AND json_extract(ratings, '$.score') > 0)
+       GROUP BY title_id ORDER BY avg DESC, votes DESC LIMIT 10`
+    ).all();
+    return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results });
   }
 
   if (path === '/titles' && method === 'POST') {
@@ -59,7 +65,9 @@ async function handleApi(request, env, url) {
   if (m && method === 'PUT') {
     const b = await readBody(request);
     if (!b || !STATUS.includes(b.status)) return bad('estado no válido');
-    const ratings = b.ratings && typeof b.ratings === 'object' ? JSON.stringify(b.ratings).slice(0, 300) : '{}';
+    const rt = b.ratings && typeof b.ratings === 'object' ? { ...b.ratings } : {};
+    if ('score' in rt) rt.score = int(rt.score, 0, 100, 0);
+    const ratings = JSON.stringify(rt).slice(0, 300);
     try {
       await env.DB.prepare(
         `INSERT INTO library (user_id, title_id, status, episode, ratings, updated_at) VALUES (?, ?, ?, ?, ?, datetime('now'))

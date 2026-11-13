@@ -92,6 +92,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--soft);outline-o
 .cover-head{position:relative;text-align:center}.cover-head .icon-btn{position:absolute;right:0;top:0;z-index:2;background:rgba(17,12,9,.7)}.cover-head .cover{width:min(62%,250px);margin:0 auto 14px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.55))}.cover-head .cover .poster{border-radius:12px}.cover-head h2{margin:0}
 .sheet-head .grow{flex:1;min-width:0}
 .crew{margin:10px 0 0;display:grid;gap:6px}.crew div{display:flex;gap:10px;font:600 13px/1.35 'Nunito',sans-serif}.crew dt{color:var(--muted);width:78px;flex:none}.crew dd{margin:0;color:var(--text)}
+.comm{display:flex;gap:12px;align-items:center}.no2{font:800 18px 'Fraunces',serif;color:var(--accent);width:18px;text-align:center;flex:none}
 .score{display:flex;gap:14px;align-items:center;margin:6px 0 4px}.score input[type=range]{width:100%;accent-color:var(--accent);margin:6px 0 0}.ticks{display:flex;justify-content:space-between;font:600 10px 'Nunito',sans-serif;color:var(--muted)}
 .ring{position:relative;display:inline-grid;place-items:center;flex:none}.ring svg{position:absolute;inset:0}.ring b{position:relative;font:800 17px 'Nunito',sans-serif;color:#fff7ef}.ring sup{font-size:8px;margin-left:1px}
 .link{background:none;border:0;color:var(--soft);font:600 12px 'Nunito',sans-serif;display:inline-flex;gap:5px;align-items:center;cursor:pointer;padding:6px 0}
@@ -269,6 +270,7 @@ const ic=(n,s=20)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="no
 
 /* ---------- datos de ejemplo ---------- */
 const STATUS=['Quiero ver','Viendo','Vista','En pausa','Abandonada'];
+const statusFor=s=>s.type==='Serie'?STATUS:STATUS.filter(x=>x!=='En pausa');
 const PLATFORMS=['Netflix','Prime Video','Disney+','Max','Movistar+','Filmin','SkyShowtime','Apple TV+','RTVE Play','Atresplayer'];
 const MOODS=['Spicy','Slow burn','Enemies to lovers','Fake dating','Grumpy x sunshine','Forbidden love','Situationship','Dark romance','Plot twist','Girls night','Para llorar','Comfort','Cozy autumn','Hot girl summer','Main character energy'];
 const CATS=[
@@ -276,7 +278,7 @@ const CATS=[
  {k:'tension',n:'Tensión',i:'bolt',c:'#f19a8a'},{k:'romance',n:'Romance',i:'heart',c:'#f08fa5'},
  {k:'comfort',n:'Comfort',i:'mug',c:'#f4a97b'},{k:'slow',n:'Slow burn',i:'hourglass',c:'#7fcfc4'}];
 
-const ring=(v,sz=64)=>{const C=2*Math.PI*26,has=typeof v==='number'&&v>0;return `<span class="ring" id="ring" style="width:${sz}px;height:${sz}px"><svg viewBox="0 0 64 64" width="${sz}" height="${sz}" aria-hidden="true"><circle cx="32" cy="32" r="31" fill="#120b07"/><circle cx="32" cy="32" r="26" fill="none" stroke="#4a3b1c" stroke-width="5"/><circle id="ringp" cx="32" cy="32" r="26" fill="none" stroke="var(--soft)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-(has?v:0)/100)}" transform="rotate(-90 32 32)"/></svg><b id="ringt">${has?v:'–'}${has?'<sup>%</sup>':''}</b></span>`};
+const ring=(v,sz=64,live=true)=>{const C=2*Math.PI*26,has=typeof v==='number'&&v>0;return `<span class="ring" style="width:${sz}px;height:${sz}px"><svg viewBox="0 0 64 64" width="${sz}" height="${sz}" aria-hidden="true"><circle cx="32" cy="32" r="31" fill="#120b07"/><circle cx="32" cy="32" r="26" fill="none" stroke="#4a3b1c" stroke-width="5"/><circle ${live?'id="ringp"':''} cx="32" cy="32" r="26" fill="none" stroke="var(--soft)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-(has?v:0)/100)}" transform="rotate(-90 32 32)"/></svg><b ${live?'id="ringt"':''}>${has?v:'–'}${has?'<sup>%</sup>':''}</b></span>`};
 const mk=(id,title,type,year,eps,status,ep,platforms,tags,hue,extra={})=>({id,title,type,year,eps,min:extra.min||0,status,ep,platforms,tags,hue,leaving:extra.leaving||null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0}});
 const SHOWS=[
  mk(1,'Cartas desde el faro','Serie',2025,10,'Viendo',4,['Netflix'],['Slow burn','Para llorar'],350),
@@ -415,6 +417,7 @@ inicio(){
   <div class="wrap" style="margin-top:8px">${platChips(t)}</div></div></div>
   <div class="wrap" style="margin-top:14px"><button class="btn" data-act="want" data-id="${t.id}">${ic('plus',18)}Quiero verla</button><button class="btn ghost" data-act="surprise">${ic('shuffle',18)}Otra</button></div>`
   :`<p style="margin:0 0 12px">¿No sabes qué ver? Te proponemos algo que esté en tus plataformas.</p><button class="btn" data-act="surprise">${ic('shuffle',18)}Sorpréndeme</button>`}</div>
+${weeklyRank()}
  ${newRow('Película','Nuevas películas')}${newRow('Serie','Nuevas series')}
  <div class="sec"><h2>Últimos días en cartel</h2></div>
  <div class="card" style="padding:4px 16px">${SHOWS.filter(s=>s.leaving).map(s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">Se va de ${s.leaving}</span></span>${ic('chevron',18)}</button>`).join('')}</div>
@@ -481,7 +484,7 @@ function results(){
  const q=S.q.trim().toLowerCase();
  const l=SHOWS.filter(s=>(!S.kind||s.type===S.kind)&&(!q||s.title.toLowerCase().includes(q))&&(!S.mood||s.tags.includes(S.mood))&&(!S.mine||avail(s).length));
  if(!l.length)return `<p class="muted" style="padding:12px 0 6px;margin:0">Nada con esos filtros. Prueba a añadir plataformas${q?' o súbela tú':''}.</p>${q?`<div style="padding:6px 0 14px"><button class="btn block" data-act="addopen" data-q="${esc(S.q.trim())}">${ic('plus',18)}Añadir «${esc(S.q.trim())}»</button></div>`:''}`;
- return l.map(s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${kind(s)} ${s.tags.slice(0,2).join(' · ')}${s.source==='user'?' · tuya':''}</span><span class="clamp">${esc(s.syn)}</span><span class="wrap" style="margin-top:6px">${platChips(s)}</span></span>${ic('chevron',18)}</button>`).join('')}
+ return l.map(s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${kind(s)} ${s.tags.slice(0,2).join(' · ')}${s.source==='user'?' · tuya':''}</span><span class="clamp">${esc(s.syn)}</span><span class="wrap" style="margin-top:6px">${platChips(s)}</span></span>${s.avg?ring(s.avg,38,false):''}${ic('chevron',18)}</button>`).join('')}
 
 /* ---------- comunidad: lugares ---------- */
 function scene(k){
@@ -492,7 +495,9 @@ function scene(k){
  if(k==='casa')return head+stars+`<rect x="30" y="150" width="340" height="20" fill="#1a0f0a"/><path d="M200 30l-90 44h180z" fill="#5a3a25"/><rect x="262" y="38" width="16" height="30" fill="#3a2318"/><circle cx="270" cy="30" r="5" fill="#f6ebdd" opacity=".25"/><circle cx="278" cy="20" r="7" fill="#f6ebdd" opacity=".15"/><rect x="120" y="74" width="160" height="82" fill="#3a2318"/><rect x="142" y="92" width="50" height="40" rx="3" fill="#ffd9a0"/><path d="M167 92v40M142 112h50" stroke="#3a2318" stroke-width="3"/><rect x="208" y="92" width="26" height="40" rx="3" fill="#e8873a" opacity=".5"/><rect x="244" y="104" width="22" height="52" rx="2" fill="#110c09"/><path d="M88 156c-6-14-4-24 4-32 4 10 4 20-4 32zM88 156c8-8 14-10 22-10-2 8-10 12-22 10z" fill="#6d8f62"/></svg>`;
  return head+stars+`<rect y="112" width="400" height="58" fill="#4a2f1e"/><rect y="108" width="400" height="8" fill="#7a4e30"/><path d="M200 0v34" stroke="#7a4e30" stroke-width="2"/><path d="M178 52l8-18h28l8 18z" fill="#ffd9a0"/><ellipse cx="200" cy="58" rx="52" ry="14" fill="#ffd9a0" opacity=".12"/><rect x="296" y="26" width="76" height="58" rx="4" fill="#17100c" stroke="#6a4a36" stroke-width="2"/><path d="M308 42h30M308 54h46M308 66h36" stroke="#e9c27f" stroke-width="2" opacity=".7"/><path d="M86 108h46v-6a23 23 0 0 1-46 0z" fill="#f6ebdd" opacity=".9"/><rect x="82" y="100" width="54" height="6" rx="3" fill="#d9c7b2"/><path d="M100 94c-6-8 6-12 0-20M118 94c-6-8 6-12 0-20" stroke="#f6ebdd" stroke-width="2" fill="none" opacity=".5"/></svg>`}
 
-const li=s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${kind(s)} ${s.tags.slice(0,2).join(' · ')}</span><span class="clamp">${esc(s.syn)}</span></span>${ic('chevron',18)}</button>`;
+const li=s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${kind(s)} ${s.tags.slice(0,2).join(' · ')}</span><span class="clamp">${esc(s.syn)}</span></span>${s.avg?ring(s.avg,38,false):''}${ic('chevron',18)}</button>`;
+let WEEKLY=[];
+const weeklyRank=()=>{const l=WEEKLY.map(w=>({s:byId(w.title_id),w})).filter(x=>x.s).slice(0,5);return `<div class="sec"><h2>Mejor puntuadas de la semana</h2></div>`+(l.length?`<div class="card" style="padding:4px 16px">${l.map((x,i)=>`<button class="list-item" data-act="open" data-id="${x.s.id}"><span class="no2">${i+1}</span>${poster(x.s,'sm')}<span class="grow"><b>${esc(x.s.title)}</b><span class="muted small">${kind(x.s)} ${x.w.votes} ${x.w.votes>1?'votos':'voto'}</span></span>${ring(x.w.avg,42,false)}</button>`).join('')}</div>`:`<div class="card muted">Aún no hay votos esta semana. Puntúa una película o serie y abre el ranking.</div>`)};
 const newRow=(type,h)=>{const l=SHOWS.filter(s=>s.type===type&&!s.leaving).sort((a,b)=>b.id-a.id).slice(0,8);return l.length?`<div class="sec"><h2>${h}</h2></div><div class="row-scroll nrow">${l.map(s=>`<button class="ncard" data-act="open" data-id="${s.id}" aria-label="Abrir ${esc(s.title)}">${poster(s,'sm')}<b>${esc(s.title)}</b>${kind(s)}</button>`).join('')}</div>`:''};
 const fmtMin=m=>m>=60?`${Math.floor(m/60)} h ${m%60?String(m%60).padStart(2,'0')+' min':''}`.trim():m+' min';
 const kind=s=>`<span class="kind ${s.type==='Serie'?'serie':'peli'}">${ic(s.type==='Serie'?'tv':'clapper',12)}${s.type}</span>`;
@@ -580,10 +585,11 @@ function sheetHTML(s){
  return `<div class="sheet-head big">${poster(s)}<div class="grow"><div><h2>${s.title}</h2><p class="muted" style="margin:6px 0 0;font-size:14px">${kind(s)} ${s.year} · ${s.type==='Serie'?s.eps+' episodios':fmtMin(s.min)}</p>${s.director?`<p class="muted" style="margin:6px 0 0;font-size:14px">Dirige ${esc(s.director)}</p>`:''}</div><div class="tags">${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  ${crewHTML(s)}
  <h3>Sinopsis</h3><p class="syn">${esc(s.syn)}</p><p class="muted small" style="margin:8px 0 0">${s.source==='user'?(s.proposed?'Añadido por ti · en revisión para el catálogo común':'Añadido por ti'):'Del catálogo'}</p>
- <h3>Estado</h3><div class="row-scroll">${STATUS.map(st=>`<button class="chip" aria-pressed="${s.status===st}" data-act="status" data-id="${s.id}" data-v="${st}">${st}</button>`).join('')}</div>
+ <h3>Estado</h3><div class="row-scroll">${statusFor(s).map(st=>`<button class="chip" aria-pressed="${s.status===st}" data-act="status" data-id="${s.id}" data-v="${st}">${st}</button>`).join('')}</div>
  ${s.type==='Serie'&&s.status&&s.status!=='Quiero ver'?`<div class="stepper"><button class="icon-btn" data-act="ep" data-id="${s.id}" data-v="-1" aria-label="Un episodio menos">${ic('minus',18)}</button><span><b>${s.ep}</b> de ${s.eps} episodios</span><button class="icon-btn" data-act="ep" data-id="${s.id}" data-v="1" aria-label="Un episodio más">${ic('plus',18)}</button></div>`:''}
  <h3>Dónde verla</h3><div class="wrap">${platChips(s)}</div>
  <p class="small ${mine.length?'':'muted'}" style="margin:10px 0 0;color:${mine.length?'var(--sage)':''}">${mine.length?`Disponible en tus plataformas: ${mine.join(', ')}.`:'No está en ninguna de tus plataformas.'}</p>
+ <h3>Comunidad</h3><div class="comm">${s.avg?ring(s.avg,56,false):`<span class="ring" style="width:56px;height:56px"><svg viewBox="0 0 64 64" width="56" height="56"><circle cx="32" cy="32" r="31" fill="#120b07"/><circle cx="32" cy="32" r="26" fill="none" stroke="#4a3b1c" stroke-width="5"/></svg><b>–</b></span>`}<span><b>${s.avg?'Puntuación de la comunidad':'Todavía sin puntuar'}</b><br><span class="muted small">${s.votes?`${s.votes} ${s.votes>1?'votos':'voto'}`:'Sé la primera en votar'}</span></span></div>
  <h3>Tu valoración</h3>
  <div class="score"><div class="grow"><p class="muted small" style="margin:0 0 4px">¿Qué te ha parecido ${esc(s.title)}?</p><input type="range" id="score" min="0" max="100" step="1" value="${s.r.score||0}" aria-label="Puntuación de 0 a 100" data-id="${s.id}"><div class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div></div>${ring(s.r.score,64)}</div>
  ${s.r.score?`<button class="link" data-act="clearscore" data-id="${s.id}">${ic('close',13)}Borrar mi puntuación</button>`:''}
@@ -646,7 +652,7 @@ document.addEventListener('click',e=>{
   case 'close':S.sheet=null;updateSheet();break;
   case 'status':s.status=v;if(v==='Vista')s.ep=s.eps;if(v==='Quiero ver')s.ep=0;syncLib(s);render();break;
   case 'ep':s.ep=Math.max(0,Math.min(s.eps,s.ep+Number(v)));syncLib(s);render();break;
-  case 'clearscore':{s.r.score=0;syncLib(s);render();updateSheet();break}
+  case 'clearscore':{s.r.score=0;syncLib(s);render();updateSheet();if(REAL)setTimeout(load,600);break}
   case 'rate':{const k=a.dataset.k,n=Number(v);s.r[k]=s.r[k]===n?0:n;syncLib(s);render();break}
   case 'watch':watch(id);break;
   case 'surprise':surprise();break;
@@ -687,7 +693,7 @@ document.addEventListener('click',e=>{
  }
 });
 const FMAP={'f-title':'title','f-year':'year','f-n':'n','f-syn':'syn'};
-document.addEventListener('change',e=>{if(e.target.id==='score'){const s=byId(Number(e.target.dataset.id));syncLib(s);render();updateSheet()}});
+document.addEventListener('change',e=>{if(e.target.id==='score'){const s=byId(Number(e.target.dataset.id));if(!s.status)s.status=s.type==='Serie'?'Viendo':'Vista';syncLib(s);render();updateSheet();if(REAL)setTimeout(load,600)}});
 document.addEventListener('input',e=>{const id=e.target.id;
  if(id==='score'){const s=byId(Number(e.target.dataset.id)),v=Number(e.target.value);s.r.score=v;const C=2*Math.PI*26;$('#ringp').setAttribute('stroke-dashoffset',C*(1-v/100));$('#ringt').innerHTML=v?v+'<sup>%</sup>':'–';return}
  if(id==='q'){S.q=e.target.value;$('#results').innerHTML=results()}
@@ -708,7 +714,8 @@ const ago=d=>{const m=Math.max(0,Math.round((Date.now()-new Date(d.replace(' ','
 function load(){
  send('/state').then(d=>{
   SHOWS.length=0;[GMAP,STATS,FRIENDS].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));[PREM,POSTS,CLUBS,POLL,DIRS,CRIT,NEWS].forEach(a=>a.length=0);REAL=true;
-  d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({id:t.id,poster:t.poster,director:t.director,writers:t.writers,release:t.release_date,age:t.age,title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
+  WEEKLY=d.weekly||[];
+  d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({avg:t.avg,votes:t.votes,id:t.id,poster:t.poster,director:t.director,writers:t.writers,release:t.release_date,age:t.age,title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
   d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status;s.ep=l.episode;try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
   d.posts.slice().reverse().forEach(p=>{if(POSTS.some(x=>x.k===p.id))return;const mine=p.liked>0;if(mine)S.liked.add(p.id);POSTS.unshift({k:p.id,u:p.handle,h:'@'+p.handle,t:ago(p.created_at),x:p.body,id:p.title_id,l:p.likes-(mine?1:0),c:0})});
   render();
