@@ -482,8 +482,9 @@ const DECO=[
  {k:'planta',n:'Planta',svg:'<svg viewBox="0 0 60 60"><path d="M30 38C28 28 20 22 12 22c2 9 8 15 18 16zM30 38c2-12 10-18 19-18-2 11-9 17-19 18z" fill="#6f9a62"/><path d="M30 38c-1-9 0-16 4-22-5 4-7 12-4 22z" fill="#8fb97f"/><path d="M19 38h22l-3 17H22z" fill="#b5653a"/><rect x="17" y="35" width="26" height="5" rx="2" fill="#cf7a49"/></svg>'},
  {k:'velas',n:'Velas',svg:'<svg viewBox="0 0 60 60"><rect x="10" y="30" width="12" height="24" rx="2" fill="#f4e9d6"/><rect x="25" y="22" width="12" height="32" rx="2" fill="#e9d9bd"/><rect x="40" y="34" width="10" height="20" rx="2" fill="#f4e9d6"/><path d="M16 27c-4-4 0-8 0-11 3 3 4 7 0 11zM31 19c-4-4 0-8 0-11 3 3 4 7 0 11zM45 31c-3-3 0-6 0-9 2 2 3 6 0 9z" fill="#ffb347"/></svg>'},
  {k:'marco',n:'Cuadro',svg:'<svg viewBox="0 0 60 60"><rect x="8" y="8" width="44" height="44" rx="2" fill="#8a5a36"/><rect x="13" y="13" width="34" height="34" fill="#2a3a52"/><path d="M13 47l10-14 7 8 6-7 11 13z" fill="#4f7a6a"/><circle cx="38" cy="22" r="4" fill="#f2d388"/></svg>'}];
-let _dz=[];try{_dz=JSON.parse(localStorage.getItem('cs_deco2')||'[]').filter(o=>o&&DECO.some(d=>d.k===o.k)&&Number.isInteger(o.at))}catch{}
-const saveDeco=()=>{try{localStorage.setItem('cs_deco2',JSON.stringify(S.deco))}catch{}};
+let _dz={};try{const ok=a=>(Array.isArray(a)?a:[]).filter(o=>o&&DECO.some(d=>d.k===o.k)&&Number.isInteger(o.at));const raw=localStorage.getItem('cs_deco3');if(raw){const o=JSON.parse(raw);Object.keys(o).forEach(k=>_dz[k]=ok(o[k]))}else{const old=ok(JSON.parse(localStorage.getItem('cs_deco2')||'[]'));if(old.length)_dz.Todas=old}}catch{}
+const saveDeco=()=>{try{localStorage.setItem('cs_deco3',JSON.stringify(S.deco))}catch{}};
+const DC=()=>S.deco[S.filter]||(S.deco[S.filter]=[]);
 const FIN={
  nogal:{n:'Nogal',w1:'#241811',w2:'#170f0a',b1:'#8a5a36',b2:'#523322',prem:false},
  roble:{n:'Roble',w1:'#34281a',w2:'#241b11',b1:'#c79a5c',b2:'#8a6a3a',prem:false},
@@ -703,9 +704,9 @@ videoclub(){
  const per=S.vstyle==='compacto'?4:3;
  const f=FIN[S.vfin];
  const bulbs='<i></i>'.repeat(14);
- const dec=S.deco.map((o,i)=>({...o,i}));
- const full=SHOWS.filter(x=>x.status);VL=list;const inL=new Set(list);const mapAt=at=>full.slice(0,Math.min(at,full.length)).filter(x=>inL.has(x)).length;
- const seq=[];for(let n=0;n<=list.length;n++){dec.filter(o=>mapAt(o.at)===n).forEach(o=>seq.push({d:o}));if(n<list.length)seq.push({s:list[n]})}
+ const dec=DC().map((o,i)=>({...o,i}));
+ VL=list;
+ const seq=[];for(let n=0;n<=list.length;n++){dec.filter(o=>Math.min(o.at,list.length)===n).forEach(o=>seq.push({d:o}));if(n<list.length)seq.push({s:list[n]})}
  seq.push({add:1});
  const rows=[];for(let i=0;i<seq.length;i+=per)rows.push(seq.slice(i,i+per));
  const cell=x=>x.add?`<button class="addslot" data-act="addopen" aria-label="Añadir título"><span>${ic('plus',22)}</span><b>Añadir título</b></button>`
@@ -870,8 +871,8 @@ function addHTML(){const d=S.draft;
 function styleHTML(){
  return `<div class="sheet-head"><div class="grow"><h2>Personalizar videoclub</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  <h3>Estilo</h3><div class="wrap">${[['estanteria','Estantería'],['cuadricula','Cuadrícula'],['compacto','Compacto']].map(([k,n])=>`<button class="chip" aria-pressed="${S.vstyle===k}" data-act="vstyle" data-v="${k}">${n}</button>`).join('')}</div>
- <h3>Decoración</h3><p class="muted small" style="margin:0 0 10px">Toca un objeto para ponerlo. Luego arrástralo con el dedo hasta donde quieras en tu estantería; si lo tocas, puedes quitarlo.</p><div class="decopick">${DECO.map(d=>`<button class="dpick" data-act="decoadd" data-v="${d.k}"><span class="dv">${d.svg}</span><b>${d.n}</b></button>`).join('')}</div>
- ${S.deco.length?`<h3>En tu estantería</h3><div class="dlist">${S.deco.map((o,i)=>`<div class="drow"><span class="dv">${DECO.find(d=>d.k===o.k).svg}</span><b class="grow">${DECO.find(d=>d.k===o.k).n}</b><button class="icon-btn" data-act="decomove" data-v="${i}" data-d="-1" aria-label="Mover a la izquierda">${ic('back',16)}</button><button class="icon-btn" data-act="decomove" data-v="${i}" data-d="1" aria-label="Mover a la derecha" style="transform:scaleX(-1)">${ic('back',16)}</button><button class="icon-btn" data-act="decodel" data-v="${i}" aria-label="Quitar">${ic('close',16)}</button></div>`).join('')}</div>`:''}
+ <h3>Decoración</h3><p class="muted small" style="margin:0 0 10px">Cada estantería (Todas, Viendo, Vista…) tiene su propia decoración. Toca un objeto para ponerlo en la que estás viendo. Luego arrástralo con el dedo hasta donde quieras en tu estantería; si lo tocas, puedes quitarlo.</p><div class="decopick">${DECO.map(d=>`<button class="dpick" data-act="decoadd" data-v="${d.k}"><span class="dv">${d.svg}</span><b>${d.n}</b></button>`).join('')}</div>
+ ${DC().length?`<h3>En esta estantería (${S.filter})</h3><div class="dlist">${DC().map((o,i)=>`<div class="drow"><span class="dv">${DECO.find(d=>d.k===o.k).svg}</span><b class="grow">${DECO.find(d=>d.k===o.k).n}</b><button class="icon-btn" data-act="decomove" data-v="${i}" data-d="-1" aria-label="Mover a la izquierda">${ic('back',16)}</button><button class="icon-btn" data-act="decomove" data-v="${i}" data-d="1" aria-label="Mover a la derecha" style="transform:scaleX(-1)">${ic('back',16)}</button><button class="icon-btn" data-act="decodel" data-v="${i}" aria-label="Quitar">${ic('close',16)}</button></div>`).join('')}</div>`:''}
  <h3>Acabado</h3><div class="fins">${Object.entries(FIN).map(([k,f])=>`<button class="fin" aria-pressed="${S.vfin===k}" data-act="vfin" data-v="${k}"><span class="sw" style="background:linear-gradient(${f.b1},${f.w1})"></span><span>${f.n}</span>${f.prem?`<span class="prem">${ic('lock',12)}Premium</span>`:''}</button>`).join('')}</div>`}
 
 /* ---------- render ---------- */
@@ -958,7 +959,7 @@ let VL=[];
  document.addEventListener('pointerdown',e=>{const el=e.target.closest('.deco[data-di]');if(!el||e.target.closest('.dx'))return;dg={el,i:Number(el.dataset.di),x0:e.clientX,y0:e.clientY,moved:false};try{el.setPointerCapture(e.pointerId)}catch(_){}});
  document.addEventListener('pointermove',e=>{if(!dg)return;if(!dg.moved&&Math.hypot(e.clientX-dg.x0,e.clientY-dg.y0)>7){dg.moved=true;gh=dg.el.cloneNode(true);gh.className='deco dragghost';gh.removeAttribute('data-di');const dx=gh.querySelector('.dx');dx&&dx.remove();document.body.appendChild(gh);mk=document.createElement('i');mk.className='dropmark';document.body.appendChild(mk);dg.el.style.opacity='.25'}
   if(dg.moved){gh.style.left=e.clientX+'px';gh.style.top=e.clientY+'px';const t=tgt(e.clientX,e.clientY);if(t.r){mk.style.display='block';mk.style.left=(t.side==='l'?t.r.left-8:t.r.right+4)+'px';mk.style.top=t.r.top+'px';mk.style.height=t.r.height+'px'}else mk.style.display='none';dg.t=t}});
- const end=e=>{if(!dg)return;const d=dg;dg=null;clean();if(d.moved){const t=d.t||tgt(e.clientX,e.clientY);{const full=SHOWS.filter(x=>x.status);S.deco[d.i].at=t.at<VL.length?full.indexOf(VL[t.at]):(VL.length?full.indexOf(VL[VL.length-1])+1:full.length)}S.decoSel=d.i;saveDeco();render()}else{S.decoSel=S.decoSel===d.i?null:d.i;render()}};
+ const end=e=>{if(!dg)return;const d=dg;dg=null;clean();if(d.moved){const t=d.t||tgt(e.clientX,e.clientY);if(DC()[d.i])DC()[d.i].at=t.at;S.decoSel=d.i;saveDeco();render()}else{S.decoSel=S.decoSel===d.i?null:d.i;render()}};
  document.addEventListener('pointerup',end);document.addEventListener('pointercancel',()=>{dg=null;clean();render()});
 })();
 
@@ -967,7 +968,7 @@ document.addEventListener('click',e=>{
  const v=a.dataset.v,id=Number(a.dataset.id),s=id?byId(id):null;
  switch(a.dataset.act){
   case 'tab':S.tab=v;S.sheet=null;if(v==='comunidad')S.place=null;if(v==='perfil'){S.profile=null;S.ajustes=false;if(S.me)send('/people').then(r=>{PEOPLE=r.people||[];if(S.tab==='perfil')render()}).catch(()=>{})}try{location.hash=v}catch(_){}render(true);break;
-  case 'filter':S.filter=v;render();break;
+  case 'filter':S.filter=v;S.decoSel=null;render();break;
   case 'open':S.sheet=id;updateSheet();break;
   case 'close':S.sheet=null;updateSheet();break;
   case 'status':if(s.status===v){s.status=null;s.ep=0;send('/library/'+s.id,'DELETE').catch(()=>{});toast('Quitada de tu videoclub');render();updateSheet();break}s.status=v;if(v==='Vista')s.ep=s.eps;if(v==='Quiero ver')s.ep=0;syncLib(s);render();break;
@@ -1031,9 +1032,9 @@ document.addEventListener('click',e=>{
   case 'th':{const k=a.dataset.k;TH[k]=k==='zoom'?Number(v):k==='calm'?v==='true':v;saveTheme();applyTheme();updateSheet();break}
   case 'threset':TH={...TH0};saveTheme();applyTheme();updateSheet();break;
   case 'styleopen':S.sheet='style';updateSheet();break;
-  case 'decoadd':{if(S.deco.length>=10){toast('Máximo 10 objetos');break}const n=SHOWS.filter(x=>x.status).length;S.deco.push({k:v,at:0});S.decoSel=S.deco.length-1;saveDeco();S.sheet=null;updateSheet();render();toast('Colocado arriba a la izquierda. Arrástralo donde quieras');setTimeout(()=>{const e=document.querySelector('.deco.sel');if(e){e.scrollIntoView({block:'center',behavior:'smooth'});e.classList.add('pulse')}},60);break}
-  case 'decomove':{const o=S.deco[Number(v)];if(!o)break;const n=SHOWS.filter(x=>x.status).length;o.at=Math.max(0,Math.min(n,o.at+Number(a.dataset.d)));saveDeco();render();updateSheet();break}
-  case 'decodel':S.deco.splice(Number(v),1);S.decoSel=null;saveDeco();render();updateSheet();toast('Objeto quitado');break
+  case 'decoadd':{const D=DC();if(D.length>=10){toast('Máximo 10 objetos');break}D.push({k:v,at:0});S.decoSel=D.length-1;saveDeco();S.sheet=null;updateSheet();render();toast('Colocado arriba a la izquierda. Arrástralo donde quieras');setTimeout(()=>{const e=document.querySelector('.deco.sel');if(e){e.scrollIntoView({block:'center',behavior:'smooth'});e.classList.add('pulse')}},60);break}
+  case 'decomove':{const o=DC()[Number(v)];if(!o)break;o.at=Math.max(0,Math.min(VL.length,o.at+Number(a.dataset.d)));saveDeco();render();updateSheet();break}
+  case 'decodel':DC().splice(Number(v),1);S.decoSel=null;saveDeco();render();updateSheet();toast('Objeto quitado');break
   case 'vstyle':S.vstyle=v;render();break;
   case 'vfin':if(FIN[v].prem){toast('Es un acabado Premium');break}S.vfin=v;render();break;
   case 'atab':S.atab=v;render();break;
