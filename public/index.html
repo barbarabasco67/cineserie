@@ -201,7 +201,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--soft);outline-o
 .cal .hd{font-size:11px;color:var(--muted);font-weight:700;padding-bottom:4px}
 .day{position:relative;aspect-ratio:1;border-radius:12px;border:1px solid transparent;background:none;font:700 13px var(--fb);cursor:pointer;display:grid;place-items:center}
 .day i{position:absolute;bottom:5px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--accent)}
+.day.has{background:rgba(var(--acc-rgb),.22);color:var(--text);border-color:rgba(var(--acc-rgb),.55)}
 .day.today{border-color:var(--soft)}
+.dt small{display:block;font:700 11px var(--fb);text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
 .day.sel{background:var(--accent);color:var(--ink)}.day.sel i{background:var(--ink)}
 .dt{width:46px;flex:none;text-align:center;font:700 12px var(--fb);color:var(--soft);line-height:1.2}
 .dt b{display:block;font:700 20px var(--ft);color:var(--text)}
@@ -872,13 +874,13 @@ function calendar(){
  const lead=(new Date(Y,M,1).getDay()+6)%7, dim=new Date(Y,M+1,0).getDate();
  const cells=[];for(let i=0;i<lead;i++)cells.push('<span></span>');
  for(let d=1;d<=dim;d++){const k=Y+'-'+String(M+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');const n=PREM.filter(p=>pdate(p)===k).length;
-  cells.push(`<button class="day ${k===TODAYISO?'today':''} ${S.cday===k?'sel':''}" data-act="day" data-v="${k}" aria-pressed="${S.cday===k}" aria-label="${d} de ${MESES[M]}${n?', '+n+(n>1?' estrenos':' estreno'):''}">${d}${n?'<i></i>':''}</button>`)}
+  cells.push(`<button class="day ${n?'has':''} ${k===TODAYISO?'today':''} ${S.cday===k?'sel':''}" data-act="day" data-v="${k}" aria-pressed="${S.cday===k}" aria-label="${d} de ${MESES[M]}${n?', '+n+(n>1?' estrenos':' estreno'):''}">${d}</button>`)}
  const list=(S.cday?PREM.filter(p=>pdate(p)===S.cday):PREM.filter(p=>pdate(p)>=TODAYISO)).slice().sort((x,y)=>pdate(x)<pdate(y)?-1:1);
  return `<div class="card"><div class="seas"><button class="icon-btn" data-act="cmonth" data-v="-1" aria-label="Mes anterior">${ic('back',18)}</button><h2>${MESES[M][0].toUpperCase()+MESES[M].slice(1)} ${Y}</h2><button class="icon-btn" data-act="cmonth" data-v="1" aria-label="Mes siguiente" style="transform:scaleX(-1)">${ic('back',18)}</button></div>
  ${S.cday?`<div style="text-align:center;margin:4px 0 10px"><button class="chip" data-act="day" data-v="${S.cday}">Ver todos los próximos</button></div>`:''}
  <div class="cal">${DAYS.map(d=>`<span class="hd">${d}</span>`).join('')}${cells.join('')}</div></div>
  <h3>${S.cday?dlabel(S.cday):'Próximos estrenos'}</h3>
- <div class="card" style="padding:4px 16px">${list.length?list.map(p=>{const dt=new Date(pdate(p)+'T12:00:00');const inner=`<b>${p.t}</b><span class="muted small">${p.p||''}</span>`;return `<div class="list-item" style="cursor:default"><span class="dt">${DAYS[(dt.getDay()+6)%7]}<b>${dt.getDate()}</b></span>
+ <div class="card" style="padding:4px 16px">${list.length?list.map(p=>{const dt=new Date(pdate(p)+'T12:00:00');const inner=`<b>${p.t}</b><span class="muted small">${p.p||''}</span>`;return `<div class="list-item" style="cursor:default"><span class="dt">${DAYS[(dt.getDay()+6)%7]}<b>${dt.getDate()}</b><small>${MESES[dt.getMonth()].slice(0,3)}</small></span>
   ${p.id&&byId(p.id)?`<button class="grow" data-act="open" data-id="${p.id}" style="background:none;border:0;padding:0;text-align:left;cursor:pointer;min-width:0">${inner}</button>`:`<span class="grow" style="min-width:0">${inner}</span>`}
   <button class="icon-btn bell" data-act="bell" data-v="${p.i}" aria-pressed="${S.bells.has(p.i)}" aria-label="Avisarme: ${p.t}">${ic('bell',18)}</button></div>`}).join(''):'<p class="muted" style="padding:12px 0;margin:0">Sin estrenos '+(S.cday?'este día':'próximos')+'.</p>'}</div>`}
 function newsView(){
