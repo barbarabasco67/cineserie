@@ -1,0 +1,8 @@
+name = "cineserie"
+pages_build_output_dir = "."
+compatibility_date = "2026-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "butaca-db"
+database_id = "fac7f314-11ac-4fc8-978c-27c27eb76363"

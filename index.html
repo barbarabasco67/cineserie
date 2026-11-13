@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#110c09">
+<title>Butaca — prototipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#110c09;--bg2:#1a120d;--card:#231913;--card2:#2e2118;--line:#45332a;--text:#f6ebdd;--muted:#c2ad99;--accent:#e8873a;--ink:#1d0f08;--soft:#e9c27f;--sage:#b8dcae;--rose:#f08fa5;--w1:#241811;--w2:#170f0a;--b1:#8a5a36;--b2:#523322}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:#080605;color:var(--text);font-family:'Nunito',system-ui,sans-serif;font-size:15px;line-height:1.4;display:flex;justify-content:center;align-items:center}
+button{font-family:inherit;color:inherit}
+.app{position:relative;width:100%;max-width:430px;height:100dvh;overflow:hidden;display:flex;flex-direction:column;background:radial-gradient(120% 45% at 50% 0%,#2a1a10 0%,var(--bg) 60%)}
+@media (min-width:520px){.app{height:min(100dvh,880px);border-radius:34px;border:1px solid var(--line);box-shadow:0 30px 80px rgba(0,0,0,.55)}}
+#screen{flex:1;overflow-y:auto;padding:calc(env(safe-area-inset-top) + 18px) 18px 110px;scrollbar-width:none}
+#screen::-webkit-scrollbar{display:none}
+h1,h2,h3{margin:0;font-family:'Fraunces',Georgia,serif;font-weight:700;letter-spacing:-.01em}
+h1{font-size:30px}
+h2{font-size:21px}
+h3{font-size:13px;font-family:'Nunito',sans-serif;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:20px 0 10px;font-weight:700}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+svg{display:block}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+.top p{margin:2px 0 0}
+.pills{display:flex;gap:8px}
+.pill{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-weight:700;font-size:13px}
+.pill svg{color:var(--accent)}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin:24px 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px}
+.card+.card{margin-top:12px}
+.btn{background:var(--accent);color:var(--ink);border:0;border-radius:14px;padding:12px 16px;font:700 14px 'Nunito',sans-serif;display:inline-flex;gap:8px;align-items:center;justify-content:center;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.45;cursor:default}
+.chip{border:1px solid var(--line);background:transparent;padding:8px 14px;border-radius:999px;font:600 13px 'Nunito',sans-serif;cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+.row-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.row-scroll::-webkit-scrollbar{display:none}
+.wrap{display:flex;gap:8px;flex-wrap:wrap}
+button:focus-visible,input:focus-visible{outline:2px solid var(--soft);outline-offset:2px}
+.icon-btn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:transparent;display:grid;place-items:center;cursor:pointer;flex:none}
+.poster{position:relative;aspect-ratio:2/3;border-radius:14px;overflow:hidden;background:#1d1510}
+.poster svg{position:absolute;inset:0;width:100%;height:100%}
+.poster .pt{position:absolute;left:10px;right:10px;bottom:10px;font:700 15px/1.15 'Fraunces',serif;color:#fff7ef;text-shadow:0 1px 8px rgba(0,0,0,.55)}
+.poster.sm{border-radius:10px}.poster.sm .pt{display:none}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 14px}
+.pcard{background:none;border:0;padding:0;text-align:left;cursor:pointer}
+.pmeta{margin-top:8px;font-size:12.5px;color:var(--muted)}
+.bar{height:7px;background:#45332a;border-radius:99px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--rose));border-radius:99px;transition:width .4s}
+.now{display:flex;gap:14px}
+.now .poster{width:84px;flex:none}
+.now .info{flex:1;min-width:0}
+.now h2{font-size:19px;margin-bottom:2px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{font-size:12px;font-weight:600;color:var(--soft);background:rgba(242,196,122,.13);border-radius:999px;padding:3px 10px}
+.plat{font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:3px 8px;display:inline-flex;gap:4px;align-items:center}
+.plat.mine{border-color:var(--sage);color:var(--sage)}
+.list-item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;cursor:pointer}
+.list-item:last-child{border-bottom:0}
+.list-item .poster{width:48px;flex:none}
+.list-item .grow{flex:1;min-width:0}
+.list-item b{display:block}
+.search{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:0 14px;margin-bottom:14px;color:var(--muted)}
+.search input{flex:1;background:none;border:0;color:var(--text);font:600 15px 'Nunito',sans-serif;padding:13px 0;outline:none}
+.switch{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 0 6px;width:100%;background:none;border:0;padding:0;cursor:pointer;font:600 14px 'Nunito',sans-serif;text-align:left}
+.switch .tr{width:44px;height:26px;border-radius:99px;background:#45332a;position:relative;flex:none;transition:.2s}
+.switch .tr::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff3ea;transition:.2s}
+.switch[aria-checked="true"] .tr{background:var(--accent)}
+.switch[aria-checked="true"] .tr::after{left:21px}
+.tabs{position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));background:rgba(35,25,19,.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:26px;display:grid;grid-template-columns:repeat(5,1fr);padding:6px;z-index:4}
+.tabs button{background:none;border:0;border-radius:20px;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:3px;font:700 11px 'Nunito',sans-serif;color:var(--muted);cursor:pointer}
+.tabs button[aria-current="page"]{color:var(--accent);background:rgba(240,138,60,.16)}
+.backdrop{position:absolute;inset:0;background:rgba(10,6,14,.62);opacity:0;pointer-events:none;transition:opacity .25s;z-index:5}
+.backdrop.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:90%;overflow-y:auto;background:var(--bg2);border-radius:28px 28px 0 0;border-top:1px solid var(--line);transform:translateY(103%);transition:transform .3s;padding:18px 18px calc(26px + env(safe-area-inset-bottom));z-index:6}
+.sheet.on{transform:none}
+.sheet-head{display:flex;gap:14px;align-items:flex-start}
+.sheet-head .poster{width:74px}
+.sheet-head .grow{flex:1;min-width:0}
+.rate{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)}
+.rate:last-child{border-bottom:0}
+.rate .lbl{display:flex;gap:8px;align-items:center;font-weight:700;color:var(--c)}
+.meter{display:flex;gap:7px}
+.dot{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);background:transparent;padding:0;cursor:pointer}
+.dot.on{background:var(--c);border-color:var(--c)}
+.stepper{display:flex;align-items:center;gap:12px;margin-top:6px}
+.toast{position:absolute;left:50%;bottom:112px;transform:translate(-50%,16px);opacity:0;background:#fff3ea;color:var(--ink);padding:10px 16px;border-radius:14px;font:700 13px 'Nunito',sans-serif;transition:.25s;pointer-events:none;z-index:9;max-width:88%;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.vote{width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:12px;cursor:pointer;display:block;position:relative;overflow:hidden}
+.vote+.vote{margin-top:8px}
+.vote .fill{position:absolute;inset:0 auto 0 0;background:rgba(240,138,60,.18);transition:width .4s}
+.vote .in{position:relative;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.vote[aria-pressed="true"]{border-color:var(--accent)}
+.avatars{display:flex}
+.av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:700 10px 'Nunito',sans-serif;color:var(--ink);margin-left:-6px;border:2px solid var(--card2)}
+.av:first-child{margin-left:0}
+.react{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.react:last-child{border-bottom:0}
+.react .ep{width:34px;height:34px;border-radius:50%;background:var(--card2);display:grid;place-items:center;font:700 12px 'Nunito',sans-serif;flex:none}
+.react.locked{opacity:.5}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 8px;text-align:center}
+.stat b{font:700 22px 'Fraunces',serif;display:block}
+.stat span{font-size:12px;color:var(--muted)}
+.shop{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.shop:last-child{border-bottom:0}
+.shop .grow{flex:1}
+.badge{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.badge:last-child{border-bottom:0}
+.badge .ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--card2);color:var(--muted);flex:none}
+.badge.ok .ic{background:var(--accent);color:var(--ink)}
+
+.salon{border-radius:22px;overflow:hidden;border:1px solid var(--line)}
+.foot{margin:26px 0 0;text-align:center;font-size:12px;color:var(--muted)}
+.pcard{position:relative}
+.sign{border:2px solid var(--accent);border-radius:18px;padding:12px 14px;text-align:center;background:#1a120d;box-shadow:0 0 20px rgba(232,135,58,.18),inset 0 0 14px rgba(232,135,58,.08);margin-bottom:18px}
+.sign h1{letter-spacing:.14em;text-transform:uppercase;font-size:26px;margin:8px 0 2px;color:var(--soft)}
+.bulbs{display:flex;justify-content:space-between;padding:0 2px}
+.bulbs i{width:8px;height:8px;border-radius:50%;background:#ffd9a0;box-shadow:0 0 8px var(--accent);animation:tw 2.4s infinite}
+.bulbs i:nth-child(odd){animation-delay:1.2s}
+@keyframes tw{50%{opacity:.4}}
+.shelf{background:linear-gradient(var(--w1),var(--w2));border-radius:8px 8px 0 0;padding:16px 10px 0;margin-bottom:20px}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end}
+.plank{height:14px;margin:0 -10px;border-radius:3px;background:linear-gradient(var(--b1),var(--b2));box-shadow:0 8px 14px rgba(0,0,0,.45)}
+.stub{position:absolute;top:6px;left:6px;font:700 10px 'Nunito',sans-serif;background:var(--accent);color:var(--ink);border-radius:5px;padding:2px 6px}
+.poster.tiny .pt{font-size:12px;left:7px;right:7px;bottom:7px}
+.syn{margin:0;color:var(--text);opacity:.92;font-size:14px;line-height:1.5}
+.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:4px;font-size:13px;color:var(--muted)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:4px;margin-bottom:16px}
+.seg button{background:none;border:0;border-radius:12px;padding:9px 0;font:700 13px 'Nunito',sans-serif;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--ink)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal .hd{font-size:11px;color:var(--muted);font-weight:700;padding-bottom:4px}
+.day{position:relative;aspect-ratio:1;border-radius:12px;border:1px solid transparent;background:none;font:700 13px 'Nunito',sans-serif;cursor:pointer;display:grid;place-items:center}
+.day i{position:absolute;bottom:5px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--accent)}
+.day.today{border-color:var(--soft)}
+.day.sel{background:var(--accent);color:var(--ink)}.day.sel i{background:var(--ink)}
+.dt{width:46px;flex:none;text-align:center;font:700 12px 'Nunito',sans-serif;color:var(--soft);line-height:1.2}
+.dt b{display:block;font:700 20px 'Fraunces',serif;color:var(--text)}
+.bell[aria-pressed="true"]{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+.news{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:14px 0;cursor:pointer}
+.news:last-child{border-bottom:0}
+.news .k{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.news b{display:block;font:700 16px/1.25 'Fraunces',serif;margin:4px 0}
+.fld{display:block;margin-top:14px}
+.fld>span{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.fld input,.fld textarea{width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;color:var(--text);font:600 15px 'Nunito',sans-serif;padding:12px 14px;outline:none;resize:none}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fin{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px;font:700 13px 'Nunito',sans-serif;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:flex-start;text-align:left}
+.fin[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.fin .sw{width:100%;height:26px;border-radius:7px}
+.fins{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.prem{font-size:11px;color:var(--soft);display:inline-flex;gap:4px;align-items:center}
+.slots.c4{grid-template-columns:repeat(4,1fr);gap:8px}
+.slots.g{row-gap:16px}
+.grid3{background:none;padding:0}
+.me{display:flex;gap:14px;align-items:center}
+.me .ava{width:60px;height:60px;border-radius:50%;background:var(--accent);color:var(--ink);display:grid;place-items:center;font:700 22px 'Fraunces',serif;flex:none}
+.strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.strip small{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.strip button{background:none;border:0;padding:0;text-align:left;cursor:pointer}
+.strip .e{aspect-ratio:2/3;border:1.5px dashed var(--line);border-radius:10px;display:grid;place-items:center;color:var(--muted);font-size:12px}
+.seas{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.tabs{left:0;right:0;bottom:0;border-radius:0;border:0;border-top:1px solid var(--line);background:rgba(20,14,10,.97);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+.tabs button{border-radius:0;position:relative}
+.tabs button[aria-current="page"]{background:none}
+.tabs button[aria-current="page"]::before{content:"";position:absolute;top:-7px;left:28%;right:28%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+#screen{padding-bottom:92px}
+.toast{bottom:84px}
+.seg{display:flex;background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:0;margin-bottom:16px}
+.seg button{flex:1;border-radius:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:10px 4px}
+.seg button[aria-pressed="true"]{background:none;color:var(--accent);border-bottom-color:var(--accent)}
+.chip{border-radius:9px}.btn{border-radius:10px}
+.place{display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card);text-align:left;cursor:pointer;margin-bottom:14px}
+.place svg{width:100%;height:150px}
+.place .pi{display:block;padding:12px 14px 14px}
+.place .pi b{display:block;font:700 20px 'Fraunces',serif}
+.venue{position:relative;margin:calc(-18px - env(safe-area-inset-top)) -18px 6px}
+.venue>svg{width:100%;height:170px}
+.venue::after{content:"";position:absolute;left:0;right:0;bottom:0;height:60%;background:linear-gradient(transparent,var(--bg));pointer-events:none}
+.venue .back{position:absolute;top:calc(12px + env(safe-area-inset-top));left:16px;background:rgba(17,12,9,.6);z-index:2}
+.venue .vt{position:absolute;left:18px;bottom:6px;z-index:1}
+.venue .vt small{display:block;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.ticket{position:relative;display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px 12px 14px;margin-bottom:12px;cursor:pointer;color:inherit}
+.ticket::before,.ticket::after{content:"";position:absolute;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--bg);border:1px solid var(--line)}
+.ticket::before{left:-8px}.ticket::after{right:-8px}
+.ticket .no{font:700 26px 'Fraunces',serif;color:var(--accent);min-width:30px;text-align:center;padding-right:10px;border-right:2px dashed var(--line)}
+.ticket .poster{width:44px;flex:none}
+.ticket .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.gen{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.gcell{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:6px;color:var(--soft)}
+.gcell b{color:var(--text);font:700 15px 'Fraunces',serif}
+.gcell[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.post{padding:16px 0;border-bottom:1px solid var(--line)}
+.ph{display:flex;gap:10px;align-items:center}
+.av2{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font:700 15px 'Nunito',sans-serif;color:var(--ink);flex:none}
+.att{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;color:inherit}
+.att .poster{width:40px;flex:none}.att .grow{flex:1;min-width:0;display:flex;flex-direction:column}
+.att .k{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.acts{display:flex;gap:18px;margin-top:10px}
+.act{background:none;border:0;display:flex;gap:6px;align-items:center;color:var(--muted);font:700 13px 'Nunito',sans-serif;cursor:pointer;padding:4px 0}
+.act.on{color:var(--rose)}
+select{width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;color:var(--text);font:600 15px 'Nunito',sans-serif;padding:12px 14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <main id="screen" aria-live="polite"></main>
+  <nav class="tabs" id="tabs" aria-label="Navegación principal"></nav>
+  <div class="backdrop" id="backdrop" data-act="close"></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Ficha"></section>
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<script>
+/* ---------- iconos de línea ---------- */
+const P={
+home:'<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',
+library:'<path d="M4 20V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14M4 12h16M4 20h16"/>',
+compass:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+people:'<circle cx="9" cy="9" r="3"/><path d="M3.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5"/><circle cx="17" cy="10" r="2.3"/><path d="M16 14.6c2.6-.2 4.3 1.1 4.8 3.9"/>',
+user:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/>',
+play:'<path d="M8 5l11 7-11 7z"/>',
+check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',
+minus:'<path d="M5 12h14"/>',
+flame:'<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.2 2-4.2.3 1.2 1 2 2 2.2C10.5 8.5 10.8 5.5 12 3z"/>',
+drop:'<path d="M12 3.5c3.2 4 5.5 6.7 5.5 10a5.5 5.5 0 0 1-11 0c0-3.3 2.3-6 5.5-10z"/>',
+smile:'<circle cx="12" cy="12" r="9"/><path d="M8.5 14c.9 1.4 2.1 2.1 3.5 2.1s2.6-.7 3.5-2.1M9 9.5h.01M15 9.5h.01"/>',
+bolt:'<path d="M13 3L5 13.5h6L10 21l9-11h-6z"/>',
+heart:'<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.6 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
+mug:'<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5zM16 11h1.5a2.5 2.5 0 0 1 0 5H16M8 4c-.6 1 .6 1.5 0 2.5M12 4c-.6 1 .6 1.5 0 2.5"/>',
+hourglass:'<path d="M7 3h10M7 21h10M8 3v3a4 4 0 0 0 1.6 3.2L12 12l-2.4 2.8A4 4 0 0 0 8 18v3M16 3v3a4 4 0 0 1-1.6 3.2L12 12l2.4 2.8A4 4 0 0 1 16 18v3"/>',
+search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
+lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+close:'<path d="M6 6l12 12M18 6L6 18"/>',
+clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+shuffle:'<path d="M4 7h3c4 0 5 10 9 10h4M4 17h3c1.5 0 2.5-1.6 3.4-3.4M20 7h-4c-1.6 0-2.7 1.2-3.5 2.6M17 4l3 3-3 3M17 14l3 3-3 3"/>',
+bucket:'<path d="M6.5 11h11l-1.2 9H7.7zM10 11l.4 9M14 11l-.4 9"/><circle cx="8.6" cy="8" r="2"/><circle cx="12" cy="7" r="2.2"/><circle cx="15.4" cy="8" r="2"/>',
+trophy:'<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5v1.5A3 3 0 0 0 8 10.5M16 6h3v1.5a3 3 0 0 1-3 3M12 13v4M9 20h6M10 17h4"/>',
+tv:'<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>',
+chevron:'<path d="M9 6l6 6-6 6"/>',
+bell:'<path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/>',
+brush:'<path d="M4 20c0-2.5 1.5-4 3.5-4 1.5 0 2.5 1 2.5 2.5C10 20 7 20 4 20zM10 15.5L19 5a1.7 1.7 0 0 1 2.4 2.4L11.5 16.5"/>',
+back:'<path d="M15 6l-6 6 6 6"/>',
+chat:'<path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>',
+clapper:'<rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M4 10l1.2-4.4 14.6 2.8-.6 1.6M8.6 6.6l2.2 3.4M13.4 7.4l2.2 3.4"/>'
+};
+const ic=(n,s=20)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+
+/* ---------- datos de ejemplo ---------- */
+const STATUS=['Quiero ver','Viendo','Vista','En pausa','Abandonada'];
+const PLATFORMS=['Netflix','Prime Video','Disney+','Max','Movistar+','Filmin','SkyShowtime','Apple TV+','RTVE Play','Atresplayer'];
+const MOODS=['Para llorar','Para desconectar','Slow burn','Enemies to lovers','Comfort','Para ver con amigas'];
+const CATS=[
+ {k:'llorar',n:'Llorar',i:'drop',c:'#8fc1f0'},{k:'reir',n:'Reír',i:'smile',c:'#f4cf7a'},
+ {k:'tension',n:'Tensión',i:'bolt',c:'#f19a8a'},{k:'romance',n:'Romance',i:'heart',c:'#f08fa5'},
+ {k:'comfort',n:'Comfort',i:'mug',c:'#f4a97b'},{k:'slow',n:'Slow burn',i:'hourglass',c:'#7fcfc4'}];
+const mk=(id,title,type,year,eps,status,ep,platforms,tags,hue,extra={})=>({id,title,type,year,eps,min:extra.min||0,status,ep,platforms,tags,hue,leaving:extra.leaving||null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0}});
+const SHOWS=[
+ mk(1,'Cartas desde el faro','Serie',2025,10,'Viendo',4,['Netflix'],['Slow burn','Para llorar'],350),
+ mk(2,'Verano en Cádiz','Serie',2026,8,'Quiero ver',0,['Prime Video'],['Para desconectar','Comfort','Para ver con amigas'],28),
+ mk(3,'Hasta que cierre el café','Serie',2024,12,'Vista',12,['Filmin','Movistar+'],['Comfort','Para desconectar'],150),
+ mk(4,'Primavera en Seúl','Serie',2025,16,'En pausa',5,['Netflix'],['Slow burn','Para llorar'],165),
+ mk(5,'Noches de invierno','Serie',2023,6,'Abandonada',2,['Movistar+'],['Para ver con amigas'],220),
+ mk(6,'Mi vecino el fiscal','Serie',2025,10,'Quiero ver',0,['SkyShowtime'],['Enemies to lovers','Para ver con amigas'],10,{leaving:'SkyShowtime el 30 nov'}),
+ mk(7,'Vuelve a casa','Película',2026,1,'Quiero ver',0,['Disney+','Prime Video'],['Para llorar','Comfort'],50,{min:112}),
+ mk(8,'El club de las tres lunas','Serie',2025,8,'Viendo',2,['Max'],['Para ver con amigas','Slow burn'],205),
+ mk(9,'Las hijas de la marea','Serie',2024,8,null,0,['Netflix','Atresplayer'],['Para llorar'],190),
+ mk(10,'Dos veranos','Serie',2025,10,null,0,['Prime Video'],['Enemies to lovers','Comfort'],40),
+ mk(11,'Café y otras mentiras','Serie',2026,8,null,0,['Filmin'],['Para desconectar','Enemies to lovers'],15),
+ mk(12,'Pequeños secretos de Lavapiés','Serie',2024,6,null,0,['RTVE Play'],['Para desconectar','Para ver con amigas'],100),
+ mk(13,'Luz de agosto','Película',2025,1,null,0,['Apple TV+'],['Slow burn','Para llorar'],60,{min:104}),
+ mk(14,'El invierno que te quise','Serie',2025,16,null,0,['Netflix','Disney+'],['Para llorar','Slow burn'],355)
+];
+SHOWS.push(
+ mk(15,'La última sesión','Película',2025,1,null,0,['Filmin'],['Comfort','Para desconectar'],20,{min:98}),
+ mk(16,'Un domingo en Valencia','Película',2026,1,null,0,['Prime Video'],['Para desconectar','Para ver con amigas'],45,{min:101}),
+ mk(17,'Cartas para Elena','Película',2024,1,null,0,['Movistar+'],['Para llorar','Slow burn'],330,{min:117}),
+ mk(18,'El verano de las luciérnagas','Película',2025,1,null,0,['Netflix','Disney+'],['Comfort','Slow burn'],90,{min:95}),
+ mk(19,'Enemigas íntimas','Película',2026,1,null,0,['Max'],['Enemies to lovers','Para ver con amigas'],340,{min:104}),
+ mk(20,'Medianoche en el Retiro','Película',2023,1,null,0,['RTVE Play'],['Slow burn','Para llorar'],255,{min:92}));
+SHOWS[2].r={llorar:2,reir:3,tension:1,romance:4,comfort:5,slow:2};
+const SYN={
+1:'Una restauradora llega a un faro abandonado de la costa gallega y encuentra cartas sin remitente. Cada una la acerca a un secreto del pueblo y a quien las escribió.',
+2:'Tres amigas alquilan un piso frente a la playa para un último verano juntas. Entre chiringuitos, mareas y decisiones aplazadas, descubren lo que de verdad quieren.',
+3:'En una cafetería de barrio a punto de cerrar, el personal y los clientes de siempre se unen para salvarla. Una serie pequeña, cálida y de las que abrazan.',
+4:'Una traductora viaja a Seúl por trabajo y se queda más tiempo del previsto. Una historia lenta sobre empezar de cero lejos de casa.',
+5:'Un grupo de amigas se reúne cada invierno en una casa de montaña. Esta vez, una invitada inesperada lo cambia todo.',
+6:'Una diseñadora y el fiscal del piso de arriba no se soportan, hasta que un caso los obliga a trabajar juntos. Comedia romántica con mucha tensión de escalera.',
+7:'Tras años fuera, una mujer vuelve al pueblo para vender la casa de su abuela. Entre cajas y recuerdos, tendrá que decidir si se queda.',
+8:'Tres vecinas montan un club de cine de madrugada que acaba convirtiéndose en refugio. Cada luna llena trae un secreto nuevo.',
+9:'Tres hermanas heredan la conservera familiar de un pueblo pesquero y deben decidir si la mantienen. Drama familiar con olor a mar.',
+10:'Dos veranos, dos amores y la misma playa. Una historia sobre cómo cambiamos entre una vez y la siguiente.',
+11:'Una barista inventa un novio para esquivar las preguntas de su familia, y su rival de la tienda de enfrente se ofrece a fingirlo.',
+12:'Las vecinas de un corral de Lavapiés comparten patio, cotilleos y más de un secreto. Comedia coral y luminosa.',
+13:'Una fotógrafa pasa agosto en la casa de su infancia para ordenar el archivo de su padre y encuentra imágenes que no esperaba.',
+14:'Dos antiguos novios se reencuentran un invierno en el pueblo donde se quisieron. Largo, nostálgico y para llorar con calma.',
+15:'El dueño de un cine de barrio anuncia su última sesión. Su nieta y los vecinos intentan salvarlo con una maratón de pelis.',
+16:'Dos hermanas que no se hablan coinciden en las fallas para vender un piso. Un domingo, mucha pólvora y una conversación pendiente.',
+17:'Una viuda encuentra las cartas que su marido dejó escritas para cada cumpleaños futuro. Un viaje de lectura, pueblo y despedida.',
+18:'Una niña de ciudad pasa agosto con su abuela y descubre un pueblo donde las luciérnagas deciden quién cuenta los secretos.',
+19:'Dos chefs rivales heredan el mismo restaurante. Tienen una temporada para decidir si lo cierran o lo levantan juntas.',
+20:'Una noche, un parque y dos desconocidos que solo se cuentan lo que no le han contado a nadie. Íntima y pausada.'};
+SHOWS.forEach(s=>{s.syn=SYN[s.id];s.source='base';s.proposed=false});
+const DAYS=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'], TODAY=13;
+const PREM=[
+ {d:14,id:4,t:'Primavera en Seúl · episodio 6',p:'Netflix'},
+ {d:18,id:8,t:'El club de las tres lunas · episodio 3',p:'Max'},
+ {d:20,id:11,t:'Café y otras mentiras · estreno',p:'Filmin'},
+ {d:21,id:2,t:'Verano en Cádiz · 2.ª temporada',p:'Prime Video'},
+ {d:22,id:9,t:'Las hijas de la marea · nuevos episodios',p:'Netflix'},
+ {d:25,id:13,t:'Luz de agosto · en cines',p:'Cines'},
+ {d:27,id:1,t:'Cartas desde el faro · final de temporada',p:'Netflix'},
+ {d:30,id:6,t:'Mi vecino el fiscal · se va de SkyShowtime',p:'SkyShowtime'}].map((p,i)=>({...p,i}));
+const dlabel=d=>`${DAYS[(d+5)%7]} ${d} nov`;
+const NEWS=[
+ {k:'Renovación',t:'«Hasta que cierre el café» tendrá segunda temporada',x:'La serie comfort del año vuelve con nuevos vecinos y la misma cafetería de siempre.',id:3,w:'Hoy'},
+ {k:'Tráiler',t:'Primer adelanto de «Vuelve a casa»',x:'La película llegará a Disney+ y Prime Video con un avance lleno de pueblo y recuerdos.',id:7,w:'Ayer'},
+ {k:'Casting',t:'«Cartas desde el faro» suma dos nombres para su final',x:'Las nuevas incorporaciones darán vida a las autoras de las cartas.',id:1,w:'Hace 2 días'},
+ {k:'Se va',t:'«Mi vecino el fiscal» deja SkyShowtime el 30 de noviembre',x:'Si la tienes en pendientes, este es el mes para verla.',id:6,w:'Hace 3 días'},
+ {k:'Estreno',t:'«Café y otras mentiras» ya tiene fecha en Filmin',x:'Llegará el 20 de noviembre con los ocho episodios de golpe.',id:11,w:'Hace 4 días'},
+ {k:'Entrevista',t:'Las creadoras de «Primavera en Seúl» hablan de su ritmo pausado',x:'Sin spoilers: explican por qué quisieron una historia que se cuece a fuego lento.',id:4,w:'Esta semana'}];
+const FIN={
+ nogal:{n:'Nogal',w1:'#241811',w2:'#170f0a',b1:'#8a5a36',b2:'#523322',prem:false},
+ roble:{n:'Roble',w1:'#34281a',w2:'#241b11',b1:'#c79a5c',b2:'#8a6a3a',prem:false},
+ tinta:{n:'Tinta',w1:'#1a1e25',w2:'#11141a',b1:'#566074',b2:'#333a48',prem:false},
+ blanco:{n:'Blanco',w1:'#d9cfc2',w2:'#c4b8a8',b1:'#f1ebe1',b2:'#cfc5b6',prem:true},
+ rosa:{n:'Rosa palo',w1:'#e6c3c3',w2:'#d3a9a9',b1:'#f3dcdc',b2:'#d1a5a5',prem:true},
+ matcha:{n:'Matcha',w1:'#b9c8a3',w2:'#a2b38b',b1:'#d6e0c6',b2:'#9db083',prem:true}};
+const STATS={1:[820,5400,4.3],2:[610,2100,3.9],3:[1500,9800,4.6],4:[940,6100,4.2],5:[210,3400,3.4],6:[1250,4800,4.1],7:[700,1200,4.0],8:[480,1900,4.4],9:[530,3300,4.0],10:[890,5200,4.1],11:[300,300,3.8],12:[180,2400,4.5],13:[420,1300,4.4],14:[1100,7700,4.2],15:[360,900,4.5],16:[540,1500,3.8],17:[290,2600,4.6],18:[640,3100,4.3],19:[770,1800,4.0],20:[90,700,4.7]};
+const GENRES=[{k:'Comedia romántica',i:'heart'},{k:'Drama',i:'drop'},{k:'Cozy',i:'mug'},{k:'Misterio',i:'search'},{k:'Fantasía',i:'compass'},{k:'Slow cinema',i:'hourglass'},{k:'Comedia',i:'smile'}];
+const GMAP={1:'Misterio',2:'Comedia',3:'Cozy',4:'Drama',5:'Misterio',6:'Comedia romántica',7:'Drama',8:'Fantasía',9:'Drama',10:'Comedia romántica',11:'Comedia romántica',12:'Comedia',13:'Slow cinema',14:'Drama',15:'Cozy',16:'Comedia',17:'Drama',18:'Fantasía',19:'Comedia romántica',20:'Slow cinema'};
+const DIRS=[{n:'Clara Beltrán',f:3,v:4120},{n:'Irene Solís',f:2,v:2890},{n:'Marta Ochoa',f:2,v:2210},{n:'Noa Valdés',f:1,v:1480}];
+const CLUBS=[{id:3,t:'Releemos el final de «Hasta que cierre el café»',w:'Domingo 22 nov · 18:00',n:62,p:'Episodio 12'},{id:1,t:'Maratón de «Cartas desde el faro»',w:'Viernes 20 nov · 21:00',n:48,p:'Episodios 5 a 7'},{id:6,t:'«Mi vecino el fiscal» antes de que se vaya',w:'Sábado 28 nov · 20:30',n:31,p:'Episodios 1 a 4'}];
+const POSTS=[
+ {u:'Lucía',h:'@lucia.ve',t:'Hace 5 min',x:'No he visto casi nada sobre esta serie y me extraña, porque tiene una pinta buenísima. ¿Alguien la ha visto?',id:8,l:12,c:3},
+ {u:'Marta',h:'@marta.pantalla',t:'Hace 20 min',x:'Final de temporada de «Cartas desde el faro»: necesito hablar de esa última carta. Sin spoilers, solo diré que lloré en la cocina.',id:1,l:34,c:9},
+ {u:'Irene',h:'@irene.sofa',t:'Hace 1 h',x:'Plan de domingo: manta, té y «La última sesión». Aceptamos recomendaciones del mismo rollo.',id:15,l:21,c:6},
+ {u:'Noelia',h:'@noe.cine',t:'Hace 3 h',x:'Opinión impopular: las comedias románticas de ahora son mejores que las de los 2000.',id:null,l:48,c:27}];
+const CRIT=[{n:'Carla Montes',h:'@carla.montes',v:42,f:2310},{n:'Sandra Vela',h:'@sandra.vela',v:32,f:3120},{n:'Joana Rey',h:'@joana.rey',v:30,f:1890},{n:'Paula Nieto',h:'@paula.nieto',v:29,f:2650},{n:'Eva Llorente',h:'@eva.llorente',v:28,f:1420}];
+const PLACES={
+ cine:{n:'Cine',sub:'Películas',d:'Taquilla, pasillos y directoras',live:'312 en sala ahora',tabs:[['taquilla','Taquilla'],['pasillos','Pasillos'],['dir','Directoras']]},
+ casa:{n:'Casa',sub:'Series',d:'Sofá, maratones y reacciones sin spoilers',live:'3 maratones esta semana',tabs:[['sofa','Sofá'],['pasillos','Pasillos'],['mar','Maratones'],['spoil','Sin spoilers']]},
+ cafe:{n:'Cafetería',sub:'Charla',d:'Comenta, queda y descubre voces',live:'87 conversando',tabs:[['charla','Charla'],['quedadas','Quedadas'],['crit','Críticas']]}};
+const AVCOL=['#e8a56a','#8fc1f0','#e8c98f','#b8dcae','#f08fa5'];
+const esc=t=>String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const newDraft=()=>({title:'',type:'Serie',year:'',n:'',plats:new Set(),tags:new Set(),syn:'',propose:true});
+const REACTIONS=[
+ ['Lucía','El primer plano del faro ya me tiene en el bolsillo.'],['Marta','Esas cartas sin remitente… estoy intrigadísima.'],
+ ['Irene','Necesito que se miren ya, por favor.'],['Lucía','La escena de la tormenta me ha dejado sin aire.'],
+ ['Marta','Ni una palabra y aun así lo dice todo.'],['Irene','Prohibido hablarme del final de este episodio.'],
+ ['Lucía','Lloré en la cocina, no pregunten.'],['Marta','El giro de la carta. No me lo esperaba.'],
+ ['Irene','Ya sé que va a doler y lo voy a ver igual.'],['Lucía','Final perfecto. Vuelvo a empezar mañana.']];
+const POLL=[2,6,7], FRIENDS={Lucía:2,Marta:6,Irene:6}, AVC={Lucía:'#f4a97b',Marta:'#8fc1f0',Irene:'#e8c98f'};
+
+/* ---------- estado ---------- */
+const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix','Prime Video','Filmin']),
+ filter:'Todas',mood:null,mine:true,q:'',tonight:null,sheet:null,vote:null,owned:new Set(),
+ dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
+const byId=id=>SHOWS.find(s=>s.id===id);
+const avail=s=>s.platforms.filter(p=>S.platforms.has(p));
+const $=s=>document.querySelector(s);
+const TABS=[['inicio','Inicio','home'],['videoclub','Videoclub','clapper'],['descubrir','Descubrir','compass'],['comunidad','Comunidad','people'],['perfil','Perfil','user']];
+
+/* ---------- piezas ---------- */
+function poster(s,cls=''){const h=s.hue,id=s.id;
+ return `<div class="poster ${cls}"><svg viewBox="0 0 100 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${h} 45% 30%)"/><stop offset="1" stop-color="hsl(${h+30} 40% 15%)"/></linearGradient></defs><rect width="100" height="150" fill="url(#g${id})"/><circle cx="${30+(id*17)%45}" cy="${34+(id*7)%16}" r="${9+(id%3)*2}" fill="hsl(${h+20} 70% 82%)" opacity=".85"/><path d="M0 108Q25 88 50 104T100 96V150H0z" fill="hsl(${h} 35% 22%)"/><path d="M0 124Q30 110 60 122T100 116V150H0z" fill="hsl(${h+10} 30% 13%)"/></svg><span class="pt">${s.title}</span></div>`}
+const platChips=s=>s.platforms.map(p=>`<span class="plat ${S.platforms.has(p)?'mine':''}">${S.platforms.has(p)?ic('check',12):''}${p}</span>`).join('');
+const pct=s=>s.eps?Math.round(s.ep/s.eps*100):0;
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2400)}
+const greet=()=>{const h=new Date().getHours();return h<13?'Buenos días':h<21?'Buenas tardes':'Buenas noches'};
+
+/* ---------- vistas ---------- */
+const VIEWS={
+inicio(){
+ const viendo=SHOWS.filter(s=>s.status==='Viendo');
+ const t=S.tonight?byId(S.tonight):null;
+ const nowCard=s=>`<div class="card"><div class="now"><button class="pcard" data-act="open" data-id="${s.id}" aria-label="Abrir ${s.title}" style="width:84px;flex:none">${poster(s)}</button>
+  <div class="info"><h2>${s.title}</h2><p class="muted small" style="margin:0">${s.type==='Serie'?`Has visto ${s.ep} de ${s.eps} episodios`:'Película'}</p>
+  <div class="bar" role="progressbar" aria-valuenow="${pct(s)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct(s)}%"></i></div>
+  <div class="wrap" style="margin-top:10px">${platChips(s)}</div>
+  <button class="btn" style="margin-top:12px" data-act="watch" data-id="${s.id}">${ic('check',18)}${s.type==='Serie'?'Episodio visto':'Marcar como vista'}</button></div></div></div>`;
+ return `<div class="top"><div><p class="muted small">${greet()}</p><h1>Butaca</h1></div>
+  <div class="pills"><span class="pill" title="Racha">${ic('flame',16)}${S.streak}</span><span class="pill" title="Palomitas">${ic('bucket',16)}${S.coins}</span></div></div>
+ <div class="sec" style="margin-top:0"><h2>En cartelera</h2></div>
+ ${viendo.length?viendo.map(nowCard).join(''):`<div class="card muted">No hay nada en cartelera. Elige algo en Descubrir.</div>`}
+ <div class="sec"><h2>Sesión de esta noche</h2></div>
+ <div class="card">${t?`<div class="now"><button class="pcard" data-act="open" data-id="${t.id}" aria-label="Abrir ${t.title}" style="width:70px;flex:none">${poster(t,'sm')}</button>
+  <div class="info"><h2 style="font-size:18px">${t.title}</h2><p class="muted small" style="margin:2px 0 0">${t.tags.slice(0,2).join(' · ')}</p><p class="clamp">${esc(t.syn)}</p>
+  <div class="wrap" style="margin-top:8px">${platChips(t)}</div></div></div>
+  <div class="wrap" style="margin-top:14px"><button class="btn" data-act="want" data-id="${t.id}">${ic('plus',18)}Quiero verla</button><button class="btn ghost" data-act="surprise">${ic('shuffle',18)}Otra</button></div>`
+  :`<p style="margin:0 0 12px">¿No sabes qué ver? Te proponemos algo que esté en tus plataformas.</p><button class="btn" data-act="surprise">${ic('shuffle',18)}Sorpréndeme</button>`}</div>
+ <div class="sec"><h2>Últimos días en cartel</h2></div>
+ <div class="card" style="padding:4px 16px">${SHOWS.filter(s=>s.leaving).map(s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">Se va de ${s.leaving}</span></span>${ic('chevron',18)}</button>`).join('')}</div>
+ <div class="sec"><h2>Próximos estrenos</h2></div>
+ <div class="card" style="padding:4px 16px">${PREM.filter(p=>p.d>=TODAY).slice(0,2).map(p=>`<div class="list-item" style="cursor:default"><span class="grow"><b>${p.t}</b><span class="muted small">${dlabel(p.d)} · ${p.p}</span></span>${ic('clock',18)}</div>`).join('')}
+  <div style="padding:12px 0"><button class="btn ghost block" data-act="goto" data-v="estrenos">Ver calendario</button></div></div>`},
+
+videoclub(){
+ const F=['Todas',...STATUS,'Añadidas por ti'];
+ const list=SHOWS.filter(s=>s.status&&(S.filter==='Todas'||(S.filter==='Añadidas por ti'?s.source==='user':s.status===S.filter)));
+ const per=S.vstyle==='compacto'?4:3;
+ const rows=[];for(let i=0;i<list.length;i+=per)rows.push(list.slice(i,i+per));
+ const f=FIN[S.vfin];
+ const bulbs='<i></i>'.repeat(14);
+ return `<div class="sign"><div class="bulbs" aria-hidden="true">${bulbs}</div><h1>Videoclub</h1><p class="muted small" style="margin:2px 0 0">Tus series y pelis, en su estantería</p><div class="bulbs" aria-hidden="true">${bulbs}</div></div>
+ <div class="wrap" style="margin-bottom:12px"><button class="btn" data-act="addopen">${ic('plus',18)}Añadir título</button><button class="btn ghost" data-act="styleopen">${ic('brush',18)}Personalizar</button></div>
+ <div class="row-scroll" role="group" aria-label="Filtrar por estado">${F.map(f=>`<button class="chip" aria-pressed="${S.filter===f}" data-act="filter" data-v="${f}">${f}</button>`).join('')}</div>
+ <div style="margin-top:20px;--w1:${f.w1};--w2:${f.w2};--b1:${f.b1};--b2:${f.b2}">${rows.map(r=>`<div class="shelf ${S.vstyle==='cuadricula'?'grid3':''}"><div class="slots ${S.vstyle==='compacto'?'c4':''} ${S.vstyle==='cuadricula'?'g':''}">${r.map(s=>`<button class="pcard" data-act="open" data-id="${s.id}" aria-label="${s.title}, ${s.status}">${poster(s,'tiny')}${S.vstyle==='compacto'?'':`<span class="stub">${s.status}</span>`}${s.status==='Viendo'?`<div class="bar"><i style="width:${pct(s)}%"></i></div>`:''}</button>`).join('')}</div>${S.vstyle==='cuadricula'?'':'<div class="plank"></div>'}</div>`).join('')}</div>
+ ${list.length?'':'<div class="card muted">Aquí no hay nada todavía.</div>'}`},
+
+descubrir(){
+ const seg=`<div class="seg" role="group" aria-label="Sección">${[['para','Para ti'],['estrenos','Estrenos'],['noticias','Noticias']].map(([k,n])=>`<button aria-pressed="${S.dtab===k}" data-act="dtab" data-v="${k}">${n}</button>`).join('')}</div>`;
+ if(S.dtab==='estrenos')return `<div class="top"><h1>Descubrir</h1></div>${seg}${calendar()}`;
+ if(S.dtab==='noticias')return `<div class="top"><h1>Descubrir</h1></div>${seg}${newsView()}`;
+ return `<div class="top"><h1>Descubrir</h1><button class="icon-btn" data-act="addopen" aria-label="Añadir un título">${ic('plus',18)}</button></div>${seg}
+ <label class="search">${ic('search',18)}<input id="q" type="search" placeholder="Buscar series y películas" value="${esc(S.q)}" aria-label="Buscar"></label>
+ <div class="row-scroll" role="group" aria-label="Ambiente">${MOODS.map(m=>`<button class="chip" aria-pressed="${S.mood===m}" data-act="mood" data-v="${m}">${m}</button>`).join('')}</div>
+ <button class="switch" role="switch" aria-checked="${S.mine}" data-act="mine"><span>Solo en mis plataformas</span><span class="tr"></span></button>
+ <h3>Mis plataformas</h3>
+ <div class="wrap">${PLATFORMS.map(p=>`<button class="chip" aria-pressed="${S.platforms.has(p)}" data-act="plat" data-v="${p}">${p}</button>`).join('')}</div>
+ <h3>Para ti</h3><div class="card" style="padding:4px 16px" id="results">${results()}</div>`},
+
+comunidad(){
+ if(S.place)return placeView();
+ const comfort=SHOWS.filter(s=>s.status==='Vista'&&s.tags.includes('Comfort')).length;
+ return `<div class="top"><div><p class="muted small">Tres sitios, una comunidad</p><h1>Comunidad</h1></div></div>
+ ${['cine','casa','cafe'].map(k=>{const P=PLACES[k];return `<button class="place" data-act="place" data-v="${k}" aria-label="Entrar en ${P.n}">${scene(k)}<span class="pi"><b>${P.n}</b><span class="muted small">${P.d}</span><span class="tag" style="display:inline-block;margin-top:8px">${P.live}</span></span></button>`}).join('')}
+ <div class="sec"><h2>Reto del mes</h2></div>
+ <div class="card"><b>Tres comfort shows en noviembre</b><div class="bar" role="progressbar" aria-valuenow="${Math.min(comfort,3)}" aria-valuemin="0" aria-valuemax="3"><i style="width:${Math.min(comfort,3)/3*100}%"></i></div><p class="muted small" style="margin:8px 0 0">${Math.min(comfort,3)} de 3 · Premio: insignia de temporada</p></div>`},
+
+perfil(){
+ const seen=SHOWS.filter(s=>s.status==='Vista').length;
+ const eps=SHOWS.filter(s=>s.status&&s.status!=='Quiero ver').reduce((a,s)=>a+s.ep,0);
+ const hrs=Math.round(eps*50/60);
+ const titles=SHOWS.filter(s=>s.status).length, films=SHOWS.filter(s=>s.type==='Película'&&s.status==='Vista').length;
+ const amb=new Set(SHOWS.filter(s=>s.status).flatMap(s=>s.tags)).size;
+ const PERM=[{n:'Primera serie terminada',i:'check',v:seen,m:1},{n:'100 episodios',i:'tv',v:eps,m:100},{n:'25 títulos en tu videoclub',i:'clapper',v:titles,m:25},{n:'Racha de 7 días',i:'flame',v:S.streak,m:7},{n:'Tu primera noche de peli',i:'people',v:S.vote?1:0,m:1},{n:'10 películas vistas',i:'heart',v:films,m:10}];
+ const TEMP=[{n:'3 series terminadas',i:'check',v:seen,m:3},{n:'12 series terminadas',i:'trophy',v:seen,m:12},{n:'100 horas de pantalla',i:'clock',v:hrs,m:100},{n:'6 ambientes distintos',i:'mug',v:amb,m:6}];
+ const B=S.atab==='perm'?PERM:TEMP;
+ const last=SHOWS.find(s=>s.status==='Vista'),cur=SHOWS.find(s=>s.status==='Viendo'),nxt=SHOWS.find(s=>s.status==='Quiero ver');
+ const slot=(l,s)=>`<div><small>${l}</small>${s?`<button data-act="open" data-id="${s.id}" aria-label="${l}: ${s.title}">${poster(s,'sm')}</button>`:'<div class="e">Vacío</div>'}</div>`;
+ return `<div class="top"><h1>Tu perfil</h1><button class="icon-btn" data-act="soon" aria-label="Resumen anual">${ic('trophy',18)}</button></div>
+ <div class="card"><div class="me"><span class="ava" aria-hidden="true">TÚ</span><span><b style="font-size:17px">@tu_butaca</b><br><span class="muted small">${titles} títulos · ${seen} terminadas · racha ${S.streak}</span></span></div>
+ <div class="strip">${slot('Última',last)}${slot('Ahora',cur)}${slot('Próxima',nxt)}</div></div>
+ <div class="stats"><div class="stat"><b>${seen}</b><span>Terminadas</span></div><div class="stat"><b>${eps}</b><span>Episodios</span></div><div class="stat"><b>${hrs} h</b><span>Frente a la tele</span></div></div>
+ <div class="sec"><h2>Logros</h2></div>
+ <div class="seg" style="grid-template-columns:1fr 1fr" role="group" aria-label="Tipo de logros">${[['perm','Permanentes'],['temp','Temporada']].map(([k,n])=>`<button aria-pressed="${S.atab===k}" data-act="atab" data-v="${k}">${n}</button>`).join('')}</div>
+ ${S.atab==='temp'?'<div class="seas"><b>Temporada 2026</b><span class="muted small">Quedan 48 días</span></div>':''}
+ <div class="card" style="padding:4px 16px">${B.map(b=>{const ok=b.v>=b.m,p=Math.min(100,Math.round(b.v/b.m*100));return `<div class="badge ${ok?'ok':''}"><span class="ic">${ic(b.i,20)}</span><span style="flex:1"><b>${b.n}</b><span class="muted small" style="float:right">${Math.min(b.v,b.m)}/${b.m}</span><div class="bar" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100" aria-label="${b.n}"><i style="width:${p}%"></i></div></span></div>`}).join('')}</div>
+ <p class="foot">Prototipo con datos de ejemplo. Títulos, personas y cifras inventados.</p>`}
+};
+
+function results(){
+ const q=S.q.trim().toLowerCase();
+ const l=SHOWS.filter(s=>(!q||s.title.toLowerCase().includes(q))&&(!S.mood||s.tags.includes(S.mood))&&(!S.mine||avail(s).length));
+ if(!l.length)return `<p class="muted" style="padding:12px 0 6px;margin:0">Nada con esos filtros. Prueba a añadir plataformas${q?' o súbela tú':''}.</p>${q?`<div style="padding:6px 0 14px"><button class="btn block" data-act="addopen" data-q="${esc(S.q.trim())}">${ic('plus',18)}Añadir «${esc(S.q.trim())}»</button></div>`:''}`;
+ return l.map(s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${s.type} · ${s.tags.slice(0,2).join(' · ')}${s.source==='user'?' · tuya':''}</span><span class="clamp">${esc(s.syn)}</span><span class="wrap" style="margin-top:6px">${platChips(s)}</span></span>${ic('chevron',18)}</button>`).join('')}
+
+/* ---------- comunidad: lugares ---------- */
+function scene(k){
+ const bulbs=(y,n,x0,dx)=>Array.from({length:n},(_,i)=>`<circle cx="${x0+i*dx}" cy="${y}" r="2.6" fill="#ffd9a0"/>`).join('');
+ const head=`<svg viewBox="0 0 400 170" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="sk${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d1a10"/><stop offset="1" stop-color="#110c09"/></linearGradient></defs><rect width="400" height="170" fill="url(#sk${k})"/>`;
+ const stars=[[40,20],[120,34],[330,24],[370,60],[80,70]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.3" fill="#f6ebdd" opacity=".6"/>`).join('');
+ if(k==='cine')return head+stars+`<rect x="50" y="62" width="300" height="108" fill="#33200f"/><rect x="80" y="34" width="240" height="46" rx="5" fill="#1a0f0a" stroke="#e8873a" stroke-width="2"/>${bulbs(40,15,92,16)}${bulbs(74,15,92,16)}<rect x="96" y="48" width="208" height="14" rx="2" fill="#e8873a" opacity=".18"/>${[0,1,2].map(i=>`<rect x="${86+i*70}" y="98" width="50" height="62" rx="3" fill="hsl(${[20,350,150][i]} 40% 26%)" stroke="#6a4a36"/>`).join('')}<rect x="300" y="100" width="34" height="70" fill="#110c09"/><rect x="306" y="108" width="22" height="52" fill="#ffd9a0" opacity=".5"/></svg>`;
+ if(k==='casa')return head+stars+`<rect x="30" y="150" width="340" height="20" fill="#1a0f0a"/><path d="M200 30l-90 44h180z" fill="#5a3a25"/><rect x="262" y="38" width="16" height="30" fill="#3a2318"/><circle cx="270" cy="30" r="5" fill="#f6ebdd" opacity=".25"/><circle cx="278" cy="20" r="7" fill="#f6ebdd" opacity=".15"/><rect x="120" y="74" width="160" height="82" fill="#3a2318"/><rect x="142" y="92" width="50" height="40" rx="3" fill="#ffd9a0"/><path d="M167 92v40M142 112h50" stroke="#3a2318" stroke-width="3"/><rect x="208" y="92" width="26" height="40" rx="3" fill="#e8873a" opacity=".5"/><rect x="244" y="104" width="22" height="52" rx="2" fill="#110c09"/><path d="M88 156c-6-14-4-24 4-32 4 10 4 20-4 32zM88 156c8-8 14-10 22-10-2 8-10 12-22 10z" fill="#6d8f62"/></svg>`;
+ return head+stars+`<rect y="112" width="400" height="58" fill="#4a2f1e"/><rect y="108" width="400" height="8" fill="#7a4e30"/><path d="M200 0v34" stroke="#7a4e30" stroke-width="2"/><path d="M178 52l8-18h28l8 18z" fill="#ffd9a0"/><ellipse cx="200" cy="58" rx="52" ry="14" fill="#ffd9a0" opacity=".12"/><rect x="296" y="26" width="76" height="58" rx="4" fill="#17100c" stroke="#6a4a36" stroke-width="2"/><path d="M308 42h30M308 54h46M308 66h36" stroke="#e9c27f" stroke-width="2" opacity=".7"/><path d="M86 108h46v-6a23 23 0 0 1-46 0z" fill="#f6ebdd" opacity=".9"/><rect x="82" y="100" width="54" height="6" rx="3" fill="#d9c7b2"/><path d="M100 94c-6-8 6-12 0-20M118 94c-6-8 6-12 0-20" stroke="#f6ebdd" stroke-width="2" fill="none" opacity=".5"/></svg>`}
+
+const li=s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${s.type} · ${s.tags.slice(0,2).join(' · ')}</span><span class="clamp">${esc(s.syn)}</span></span>${ic('chevron',18)}</button>`;
+const fmt=n=>n.toLocaleString('es-ES');
+function ticketList(type){
+ const m=S.rank==='mes'?0:1;
+ const l=SHOWS.filter(s=>s.type===type&&STATS[s.id]).sort((a,b)=>STATS[b.id][m]-STATS[a.id][m]).slice(0,6);
+ const gems=SHOWS.filter(s=>s.type===type&&STATS[s.id]&&STATS[s.id][1]<3000&&STATS[s.id][2]>=4.4);
+ const verb=type==='Serie'?'siguiendo':'espectadoras';
+ return `<div class="seas"><h2>${type==='Serie'?'En el sofá':'Taquilla'}</h2><div class="wrap">${[['mes','Este mes'],['siempre','Siempre']].map(([k,n])=>`<button class="chip" aria-pressed="${S.rank===k}" data-act="rank" data-v="${k}">${n}</button>`).join('')}</div></div>
+ ${l.map((s,i)=>`<button class="ticket" data-act="open" data-id="${s.id}"><span class="no">${i+1}</span>${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${fmt(STATS[s.id][m])} ${verb} · ${s.year}</span><span class="small" style="color:var(--soft)">★ ${STATS[s.id][2].toFixed(1).replace('.',',')}</span></span></button>`).join('')}
+ <div class="sec"><h2>Joyas escondidas</h2></div><p class="muted small" style="margin:-6px 0 8px">Pocas espectadoras y muy buenas notas.</p>
+ <div class="card" style="padding:4px 16px">${gems.map(li).join('')}</div>`}
+function pasillos(type){
+ const gs=GENRES.map(g=>({...g,l:SHOWS.filter(s=>s.type===type&&GMAP[s.id]===g.k)})).filter(g=>g.l.length);
+ const sel=gs.find(g=>g.k===S.genre);
+ return `<div class="gen">${gs.map(g=>`<button class="gcell" aria-pressed="${S.genre===g.k}" data-act="genre" data-v="${g.k}">${ic(g.i,26)}<b>${g.k}</b><span class="muted small">${g.l.length} ${g.l.length>1?'títulos':'título'}</span></button>`).join('')}</div>
+ ${sel?`<h3>${sel.k}</h3><div class="card" style="padding:4px 16px">${sel.l.map(li).join('')}</div>`:'<p class="muted small" style="margin-top:14px">Elige un pasillo para ver sus títulos.</p>'}`}
+function maratones(){
+ return CLUBS.map((c,i)=>{const j=S.joined.has(i);return `<div class="card"><span class="tag">${c.w}</span><h2 style="font-size:18px;margin:10px 0 4px">${c.t}</h2><p class="muted small" style="margin:0">${c.p} · ${c.n+(j?1:0)} apuntadas</p><div class="wrap" style="margin-top:12px"><button class="btn ${j?'ghost':''}" data-act="join" data-v="${i}" aria-pressed="${j}">${j?ic('check',18)+'Apuntada':'Apuntarme'}</button><button class="btn ghost" data-act="open" data-id="${c.id}">Ver ficha</button></div></div>`}).join('')}
+function spoilers(){
+ const s1=byId(1);
+ return `<div class="card"><p class="muted small" style="margin:0 0 6px">Reacciones a «${s1.title}». Vas por el episodio ${s1.ep}: el resto se desbloquea al verlo.</p>
+ ${REACTIONS.map((r,i)=>{const ok=i<s1.ep;return `<div class="react ${ok?'':'locked'}"><span class="ep">${ok?i+1:ic('lock',14)}</span><span>${ok?`<b>${r[0]}</b><br>${r[1]}`:`<span class="muted">Ve el episodio ${i+1} para leerlo</span>`}</span></div>`}).join('')}</div>`}
+function directoras(){
+ return `<div class="seas"><h2>Directoras del momento</h2></div>${DIRS.map((d,i)=>`<div class="ticket" style="cursor:default"><span class="no">${i+1}</span><span class="grow"><b>${d.n}</b><span class="muted small">${d.f} ${d.f>1?'películas':'película'} en la plataforma · ${fmt(d.v)} espectadoras</span></span></div>`).join('')}`}
+function charla(){
+ const s1=byId(1);
+ return `<div class="card"><span class="tag">En el mismo capítulo</span><p style="margin:10px 0 0">Lucía, Marta e Irene también van por el episodio ${s1.ep} de «${s1.title}».</p><div class="avatars" style="margin-top:10px">${Object.keys(FRIENDS).map(n=>`<span class="av" style="background:${AVC[n]}">${n[0]}</span>`).join('')}</div></div>
+ <button class="btn block" style="margin:14px 0" data-act="postopen">${ic('plus',18)}Escribir en la charla</button>
+ ${POSTS.map((p,i)=>{const sh=p.id?byId(p.id):null,lk=S.liked.has(i);return `<article class="post"><div class="ph"><span class="av2" style="background:${AVCOL[i%5]}">${p.u[0]}</span><span><b>${esc(p.u)}</b><br><span class="muted small">${esc(p.h)} · ${p.t}</span></span></div><p style="margin:10px 0">${esc(p.x)}</p>
+  ${sh?`<button class="att" data-act="open" data-id="${sh.id}">${poster(sh,'sm')}<span class="grow"><span class="k">${sh.type}</span><b>${sh.title}</b><span class="muted small">${sh.year}</span></span>${ic('chevron',18)}</button>`:''}
+  <div class="acts"><button class="act ${lk?'on':''}" data-act="like" data-v="${i}" aria-pressed="${lk}" aria-label="Me gusta">${ic('heart',18)}${p.l+(lk?1:0)}</button><button class="act" data-act="soon2" aria-label="Comentarios">${ic('chat',18)}${p.c}</button></div></article>`}).join('')}`}
+function quedadas(){
+ const tot=Object.values(FRIENDS).length+(S.vote?1:0);
+ const cnt=id=>Object.values(FRIENDS).filter(v=>v===id).length+(S.vote===id?1:0);
+ const lead=Math.max(...POLL.map(cnt));
+ return `<div class="card"><h2>Noche de peli</h2><p class="muted small" style="margin:4px 0 14px">Viernes · Lucía, Marta e Irene ya han votado.</p>
+ ${POLL.map(id=>{const s=byId(id),c=cnt(id),w=Math.round(c/tot*100);
+  return `<button class="vote" aria-pressed="${S.vote===id}" data-act="vote" data-id="${id}"><span class="fill" style="width:${w}%"></span><span class="in"><span><b>${s.title}</b><br><span class="muted small">${s.platforms.join(' · ')}</span></span>
+  <span style="display:flex;align-items:center;gap:8px"><span class="avatars">${Object.keys(FRIENDS).filter(n=>FRIENDS[n]===id).map(n=>`<span class="av" style="background:${AVC[n]}">${n[0]}</span>`).join('')}${S.vote===id?`<span class="av" style="background:#fff3ea">Tú</span>`:''}</span>${c===lead?`<span class="tag">Gana</span>`:''}</span></span></button>`}).join('')}</div>`}
+function criticas(){
+ const l=[...CRIT].sort((a,b)=>S.rev==='res'?b.v-a.v:b.f-a.f);
+ return `<div class="seg" role="group" aria-label="Orden">${[['res','Más reseñas'],['seg','Más seguidas']].map(([k,n])=>`<button aria-pressed="${S.rev===k}" data-act="rev" data-v="${k}">${n}</button>`).join('')}</div>
+ ${l.map((c,i)=>`<div class="ticket" style="cursor:default"><span class="no">${i+1}</span><span class="grow"><b>${c.n}</b><span class="muted small">${c.h}</span><span class="small" style="color:var(--soft)">${S.rev==='res'?c.v+' reseñas en 30 días':fmt(c.f)+' seguidoras'}</span></span></div>`).join('')}`}
+function placeView(){
+ const P=PLACES[S.place],t=S.sub[S.place];
+ const body={cine:{taquilla:()=>ticketList('Película'),pasillos:()=>pasillos('Película'),dir:directoras},casa:{sofa:()=>ticketList('Serie'),pasillos:()=>pasillos('Serie'),mar:maratones,spoil:spoilers},cafe:{charla,quedadas,crit:criticas}}[S.place][t]();
+ return `<div class="venue"><button class="icon-btn back" data-act="placeback" aria-label="Volver a Comunidad">${ic('back',18)}</button>${scene(S.place)}<div class="vt"><small class="muted">${P.sub}</small><h1>${P.n}</h1></div></div>
+ <div class="seg" role="group" aria-label="Secciones de ${P.n}">${P.tabs.map(([k,n])=>`<button aria-pressed="${t===k}" data-act="sub" data-v="${k}">${n}</button>`).join('')}</div>${body}`}
+function postHTML(){const d=S.pdraft;
+ return `<div class="sheet-head"><div class="grow"><h2>Escribir en la charla</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ <label class="fld"><span>Tu mensaje</span><textarea id="f-post" rows="4" maxlength="400" placeholder="Cuenta qué has visto, sin spoilers">${esc(d.x)}</textarea></label>
+ <label class="fld"><span>Adjuntar un título (opcional)</span><select id="f-pt"><option value="">Ninguno</option>${SHOWS.map(s=>`<option value="${s.id}" ${String(d.id)===String(s.id)?'selected':''}>${esc(s.title)}</option>`).join('')}</select></label>
+ <button class="btn block" style="margin-top:16px" data-act="postsave">Publicar</button>`}
+
+/* ---------- calendario y noticias ---------- */
+function calendar(){
+ const cells=['<span></span>'.repeat(6)];
+ for(let d=1;d<=30;d++){const n=PREM.filter(p=>p.d===d).length;
+  cells.push(`<button class="day ${d===TODAY?'today':''} ${S.cday===d?'sel':''}" data-act="day" data-v="${d}" aria-pressed="${S.cday===d}" aria-label="${d} de noviembre${n?', '+n+(n>1?' estrenos':' estreno'):''}">${d}${n?'<i></i>':''}</button>`)}
+ const list=S.cday?PREM.filter(p=>p.d===S.cday):PREM.filter(p=>p.d>=TODAY);
+ return `<div class="card"><div class="seas"><h2>Noviembre 2026</h2>${S.cday?`<button class="chip" data-act="day" data-v="${S.cday}">Ver todo el mes</button>`:''}</div>
+ <div class="cal">${DAYS.map(d=>`<span class="hd">${d}</span>`).join('')}${cells.join('')}</div></div>
+ <h3>${S.cday?dlabel(S.cday):'Próximos estrenos'}</h3>
+ <div class="card" style="padding:4px 16px">${list.length?list.map(p=>`<div class="list-item" style="cursor:default"><span class="dt">${DAYS[(p.d+5)%7]}<b>${p.d}</b></span>
+  <button class="grow" data-act="open" data-id="${p.id}" style="background:none;border:0;padding:0;text-align:left;cursor:pointer;min-width:0"><b>${p.t}</b><span class="muted small">${p.p}</span></button>
+  <button class="icon-btn bell" data-act="bell" data-v="${p.i}" aria-pressed="${S.bells.has(p.i)}" aria-label="Avisarme: ${p.t}">${ic('bell',18)}</button></div>`).join(''):'<p class="muted" style="padding:12px 0;margin:0">Sin estrenos este día.</p>'}</div>`}
+function newsView(){
+ const l=NEWS.filter(n=>!S.newsMine||byId(n.id).status);
+ return `<button class="switch" role="switch" aria-checked="${S.newsMine}" data-act="newsmine" style="margin-top:0"><span>Solo de mis series</span><span class="tr"></span></button>
+ <div class="card" style="padding:4px 16px;margin-top:10px">${l.length?l.map(n=>`<button class="news" data-act="open" data-id="${n.id}"><span class="k">${n.k} · ${n.w}</span><b>${n.t}</b><span class="muted small">${n.x}</span></button>`).join(''):'<p class="muted" style="padding:12px 0;margin:0">Aún no hay noticias de tus series.</p>'}</div>`}
+
+/* ---------- ficha ---------- */
+function sheetHTML(s){
+ const mine=avail(s);
+ return `<div class="sheet-head">${poster(s,'sm')}<div class="grow"><h2>${s.title}</h2><p class="muted small" style="margin:2px 0 0">${s.type} · ${s.year} · ${s.type==='Serie'?s.eps+' episodios':s.min+' min'}</p><div class="tags">${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ <h3>Sinopsis</h3><p class="syn">${esc(s.syn)}</p><p class="muted small" style="margin:8px 0 0">${s.source==='user'?(s.proposed?'Añadido por ti · en revisión para el catálogo común':'Añadido por ti'):'Del catálogo'}</p>
+ <h3>Estado</h3><div class="row-scroll">${STATUS.map(st=>`<button class="chip" aria-pressed="${s.status===st}" data-act="status" data-id="${s.id}" data-v="${st}">${st}</button>`).join('')}</div>
+ ${s.type==='Serie'&&s.status&&s.status!=='Quiero ver'?`<div class="stepper"><button class="icon-btn" data-act="ep" data-id="${s.id}" data-v="-1" aria-label="Un episodio menos">${ic('minus',18)}</button><span><b>${s.ep}</b> de ${s.eps} episodios</span><button class="icon-btn" data-act="ep" data-id="${s.id}" data-v="1" aria-label="Un episodio más">${ic('plus',18)}</button></div>`:''}
+ <h3>Dónde verla</h3><div class="wrap">${platChips(s)}</div>
+ <p class="small ${mine.length?'':'muted'}" style="margin:10px 0 0;color:${mine.length?'var(--sage)':''}">${mine.length?`Disponible en tus plataformas: ${mine.join(', ')}.`:'No está en ninguna de tus plataformas.'}</p>
+ <h3>Tu valoración</h3><div>${CATS.map(c=>`<div class="rate" style="--c:${c.c}"><span class="lbl">${ic(c.i,18)}${c.n}</span><span class="meter">${[1,2,3,4,5].map(n=>`<button class="dot ${s.r[c.k]>=n?'on':''}" data-act="rate" data-id="${s.id}" data-k="${c.k}" data-v="${n}" aria-label="${c.n} ${n} de 5"></button>`).join('')}</span></div>`).join('')}</div>`}
+
+function addHTML(){const d=S.draft;
+ return `<div class="sheet-head"><div class="grow"><h2>Añadir un título</h2><p class="muted small" style="margin:2px 0 0">Para lo que aún no está en el catálogo.</p></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ <label class="fld"><span>Título</span><input id="f-title" value="${esc(d.title)}" maxlength="80" autocomplete="off"></label>
+ <h3>Tipo</h3><div class="wrap">${['Serie','Película'].map(t=>`<button class="chip" aria-pressed="${d.type===t}" data-act="dtype" data-v="${t}">${t}</button>`).join('')}</div>
+ <div class="two"><label class="fld"><span>Año</span><input id="f-year" inputmode="numeric" maxlength="4" value="${esc(d.year)}"></label><label class="fld"><span>${d.type==='Serie'?'Episodios':'Minutos'}</span><input id="f-n" inputmode="numeric" maxlength="4" value="${esc(d.n)}"></label></div>
+ <label class="fld"><span>Sinopsis</span><textarea id="f-syn" rows="3" maxlength="400">${esc(d.syn)}</textarea></label>
+ <h3>Dónde verla</h3><div class="wrap">${PLATFORMS.map(p=>`<button class="chip" aria-pressed="${d.plats.has(p)}" data-act="dplat" data-v="${p}">${p}</button>`).join('')}</div>
+ <h3>Ambiente</h3><div class="wrap">${MOODS.map(m=>`<button class="chip" aria-pressed="${d.tags.has(m)}" data-act="dtag" data-v="${m}">${m}</button>`).join('')}</div>
+ <button class="switch" role="switch" aria-checked="${d.propose}" data-act="dprop" style="margin-top:18px"><span>Proponer para el catálogo común<br><span class="muted small">Lo revisamos antes de publicarlo para todas.</span></span><span class="tr"></span></button>
+ <button class="btn block" style="margin-top:14px" data-act="save">Guardar en mi videoclub</button>`}
+function styleHTML(){
+ return `<div class="sheet-head"><div class="grow"><h2>Personalizar videoclub</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ <h3>Estilo</h3><div class="wrap">${[['estanteria','Estantería'],['cuadricula','Cuadrícula'],['compacto','Compacto']].map(([k,n])=>`<button class="chip" aria-pressed="${S.vstyle===k}" data-act="vstyle" data-v="${k}">${n}</button>`).join('')}</div>
+ <h3>Acabado</h3><div class="fins">${Object.entries(FIN).map(([k,f])=>`<button class="fin" aria-pressed="${S.vfin===k}" data-act="vfin" data-v="${k}"><span class="sw" style="background:linear-gradient(${f.b1},${f.w1})"></span><span>${f.n}</span>${f.prem?`<span class="prem">${ic('lock',12)}Premium</span>`:''}</button>`).join('')}</div>`}
+
+/* ---------- render ---------- */
+function updateTabs(){$('#tabs').innerHTML=TABS.map(([k,n,i])=>`<button data-act="tab" data-v="${k}" ${S.tab===k?'aria-current="page"':''}>${ic(i,22)}${n}</button>`).join('')}
+function updateSheet(){
+ const sh=$('#sheet'),top=sh.scrollTop;
+ if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():styleHTML();sh.scrollTop=top}
+ sh.classList.toggle('on',S.sheet!==null);$('#backdrop').classList.toggle('on',S.sheet!==null);
+}
+function render(reset){const sc=$('#screen'),top=sc.scrollTop;sc.innerHTML=VIEWS[S.tab]();sc.scrollTop=reset?0:top;updateTabs();updateSheet()}
+
+function watch(id){
+ const s=byId(id);if(s.status!=='Viendo')return;
+ if(s.ep<s.eps)s.ep++;S.coins+=10;
+ if(s.ep>=s.eps){s.status='Vista';S.coins+=50;toast(`Terminada: ${s.title}. +60 palomitas`)}else toast(`Episodio ${s.ep} visto. +10 palomitas`);
+ if(!S.today){S.today=true;S.streak++}
+ render();
+}
+function saveDraft(){
+ const d=S.draft,t=d.title.trim();
+ if(!t){toast('Ponle un título');return}
+ if(!d.syn.trim()){toast('Escribe una sinopsis breve');return}
+ const id=Math.max(...SHOWS.map(s=>s.id))+1,n=parseInt(d.n)||0,film=d.type==='Película';
+ SHOWS.push({id,title:t,type:d.type,year:parseInt(d.year)||2026,eps:film?1:(n||8),min:film?(n||100):0,status:'Quiero ver',ep:0,platforms:[...d.plats],tags:[...d.tags],hue:[...t].reduce((a,c)=>a+c.charCodeAt(0),0)%360,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:d.syn.trim(),source:'user',proposed:d.propose});
+ S.sheet=null;S.tab='videoclub';S.filter='Todas';S.draft=newDraft();
+ toast(d.propose?'Añadida. Queda en revisión para el catálogo común':'Añadida a tu videoclub');render(true);
+}
+function surprise(){
+ const c=SHOWS.filter(s=>(!s.status||s.status==='Quiero ver')&&avail(s).length&&s.id!==S.tonight);
+ if(!c.length){toast('Añade plataformas para recibir ideas');return}
+ S.tonight=c[Math.floor(Math.random()*c.length)].id;render();
+}
+
+document.addEventListener('click',e=>{
+ const a=e.target.closest('[data-act]');if(!a)return;
+ const v=a.dataset.v,id=Number(a.dataset.id),s=id?byId(id):null;
+ switch(a.dataset.act){
+  case 'tab':S.tab=v;S.sheet=null;if(v==='comunidad')S.place=null;try{location.hash=v}catch(_){}render(true);break;
+  case 'filter':S.filter=v;render();break;
+  case 'open':S.sheet=id;updateSheet();break;
+  case 'close':S.sheet=null;updateSheet();break;
+  case 'status':s.status=v;if(v==='Vista')s.ep=s.eps;if(v==='Quiero ver')s.ep=0;render();break;
+  case 'ep':s.ep=Math.max(0,Math.min(s.eps,s.ep+Number(v)));render();break;
+  case 'rate':{const k=a.dataset.k,n=Number(v);s.r[k]=s.r[k]===n?0:n;render();break}
+  case 'watch':watch(id);break;
+  case 'surprise':surprise();break;
+  case 'want':s.status='Quiero ver';toast('Añadida a Quiero ver');render();break;
+  case 'mood':S.mood=S.mood===v?null:v;render();break;
+  case 'mine':S.mine=!S.mine;render();break;
+  case 'plat':S.platforms.has(v)?S.platforms.delete(v):S.platforms.add(v);render();break;
+  case 'vote':S.vote=S.vote===id?null:id;render();break;
+  case 'place':S.place=v;S.genre=null;render(true);break;
+  case 'placeback':S.place=null;S.genre=null;render(true);break;
+  case 'sub':S.sub[S.place]=v;S.genre=null;render();break;
+  case 'rank':S.rank=v;render();break;
+  case 'genre':S.genre=S.genre===v?null:v;render();break;
+  case 'rev':S.rev=v;render();break;
+  case 'join':{const i=Number(v);if(S.joined.has(i))S.joined.delete(i);else{S.joined.add(i);toast('Te apuntamos a la maratón')}render();break}
+  case 'like':{const i=Number(v);S.liked.has(i)?S.liked.delete(i):S.liked.add(i);render();break}
+  case 'soon2':toast('Los comentarios llegarán pronto');break;
+  case 'postopen':S.pdraft={x:'',id:''};S.sheet='post';updateSheet();break;
+  case 'postsave':{const x=S.pdraft.x.trim();if(!x){toast('Escribe algo primero');break}POSTS.unshift({u:'Tú',h:'@tu_butaca',t:'Ahora',x,id:S.pdraft.id?Number(S.pdraft.id):null,l:0,c:0});S.liked=new Set([...S.liked].map(i=>i+1));S.sheet=null;toast('Publicado en la charla');render();break}
+  case 'goto':S.tab='descubrir';S.dtab=v;S.cday=null;S.sheet=null;render(true);break;
+  case 'dtab':S.dtab=v;S.cday=null;render(true);break;
+  case 'day':S.cday=S.cday===Number(v)?null:Number(v);render();break;
+  case 'bell':{const i=Number(v);if(S.bells.has(i)){S.bells.delete(i)}else{S.bells.add(i);toast('Te avisaremos ese día')}render();break}
+  case 'newsmine':S.newsMine=!S.newsMine;render();break;
+  case 'addopen':S.draft=newDraft();if(a.dataset.q)S.draft.title=a.dataset.q;S.sheet='add';updateSheet();break;
+  case 'dtype':S.draft.type=v;updateSheet();break;
+  case 'dplat':S.draft.plats.has(v)?S.draft.plats.delete(v):S.draft.plats.add(v);updateSheet();break;
+  case 'dtag':S.draft.tags.has(v)?S.draft.tags.delete(v):S.draft.tags.add(v);updateSheet();break;
+  case 'dprop':S.draft.propose=!S.draft.propose;updateSheet();break;
+  case 'save':saveDraft();break;
+  case 'styleopen':S.sheet='style';updateSheet();break;
+  case 'vstyle':S.vstyle=v;render();break;
+  case 'vfin':if(FIN[v].prem){toast('Es un acabado Premium');break}S.vfin=v;render();break;
+  case 'atab':S.atab=v;render();break;
+  case 'soon':toast('Tu resumen anual llegará pronto');break;
+ }
+});
+const FMAP={'f-title':'title','f-year':'year','f-n':'n','f-syn':'syn'};
+document.addEventListener('input',e=>{const id=e.target.id;
+ if(id==='q'){S.q=e.target.value;$('#results').innerHTML=results()}
+ else if(FMAP[id])S.draft[FMAP[id]]=e.target.value
+ else if(id==='f-post')S.pdraft.x=e.target.value
+ else if(id==='f-pt')S.pdraft.id=e.target.value});
+document.addEventListener('change',e=>{if(e.target.id==='f-pt')S.pdraft.id=e.target.value});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.sheet!==null){S.sheet=null;updateSheet()}});
+function fromHash(){const h=(location.hash||'').slice(1);if(VIEWS[h]&&h!==S.tab){S.tab=h;render(true)}}
+window.addEventListener('hashchange',fromHash);
+fromHash();render(true);
+</script>
+</body>
+</html>
