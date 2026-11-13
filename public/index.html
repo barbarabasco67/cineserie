@@ -88,6 +88,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--soft);outline-o
 .sheet.on{transform:none}
 .sheet-head{display:flex;gap:14px;align-items:flex-start}
 .sheet-head .poster{width:74px}
+.sheet-head.big .poster{width:124px;flex:none;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.45)}
 .cover-head{position:relative;text-align:center}.cover-head .icon-btn{position:absolute;right:0;top:0;z-index:2;background:rgba(17,12,9,.7)}.cover-head .cover{width:min(62%,250px);margin:0 auto 14px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.55))}.cover-head .cover .poster{border-radius:12px}.cover-head h2{margin:0}
 .sheet-head .grow{flex:1;min-width:0}
 .crew{margin:10px 0 0;display:grid;gap:6px}.crew div{display:flex;gap:10px;font:600 13px/1.35 'Nunito',sans-serif}.crew dt{color:var(--muted);width:78px;flex:none}.crew dd{margin:0;color:var(--text)}
@@ -575,7 +576,7 @@ const dmy=d=>{const m=String(d||'').match(/^(\d{4})-(\d\d)-(\d\d)/);return m?`${
 const crewHTML=s=>{const r=[['Dirección',s.director],['Guion',s.writers],['Estreno',dmy(s.release)],['Edad',s.age]].filter(x=>x[1]);return r.length?`<dl class="crew">${r.map(([k,v])=>`<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`:''};
 function sheetHTML(s){
  const mine=avail(s);
- return `<div class="cover-head"><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button><div class="cover">${poster(s)}</div><h2>${s.title}</h2><p class="muted small" style="margin:4px 0 0">${kind(s)} ${s.year} · ${s.type==='Serie'?s.eps+' episodios':s.min+' min'}</p><div class="tags" style="justify-content:center">${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div>
+ return `<div class="sheet-head big">${poster(s)}<div class="grow"><h2>${s.title}</h2><p class="muted small" style="margin:4px 0 0">${kind(s)} ${s.year} · ${s.type==='Serie'?s.eps+' episodios':s.min+' min'}</p><div class="tags">${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  ${crewHTML(s)}
  <h3>Sinopsis</h3><p class="syn">${esc(s.syn)}</p><p class="muted small" style="margin:8px 0 0">${s.source==='user'?(s.proposed?'Añadido por ti · en revisión para el catálogo común':'Añadido por ti'):'Del catálogo'}</p>
  <h3>Estado</h3><div class="row-scroll">${STATUS.map(st=>`<button class="chip" aria-pressed="${s.status===st}" data-act="status" data-id="${s.id}" data-v="${st}">${st}</button>`).join('')}</div>
