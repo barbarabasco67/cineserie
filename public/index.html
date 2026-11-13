@@ -568,7 +568,7 @@ const POLL=[2,6,7], FRIENDS={Lucía:2,Marta:6,Irene:6}, AVC={Lucía:'#f4a97b',Ma
 /* ---------- estado ---------- */
 const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix','Prime Video','Filmin']),
  filter:'Todas',mood:null,coll:null,mine:true,q:'',tonight:null,night:null,sheet:null,vote:null,owned:new Set(),
- dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,decoSel:null,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,reveal:new Set(),mod:null,blks:null,plan:null,cpost:null,cmts:null,pspoil:false,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
+ dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,decoSel:null,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,reveal:new Set(),live:null,mod:null,blks:null,plan:null,cpost:null,cmts:null,pspoil:false,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
 let REAL=false;
 const byId=id=>SHOWS.find(s=>s.id===id);
 const dd=(k,t,v,body)=>`<div class="dd"><button class="dd-h" aria-expanded="${S.dd===k}" data-act="dd" data-v="${k}"><span><b>${t}</b><small>${v}</small></span>${ic('chevron',16)}</button>${S.dd===k?`<div class="wrap dd-b">${body}</div>`:''}</div>`;
@@ -836,17 +836,28 @@ function pasillos(type){
  ${sel?`<h3>${sel.k}</h3><div class="card" style="padding:4px 16px">${sel.l.map(li).join('')}</div>`:'<p class="muted small" style="margin-top:14px">Elige un pasillo para ver sus títulos.</p>'}`}
 const EMPTY=m=>`<div class="card"><p class="muted small" style="margin:0">${m}</p></div>`;
 const planKindName=k=>k==='quedada'?'quedada':'maratón';
+const planStart=p=>new Date(p.date+'T'+(p.time||'00:00')+':00');
+const planLive=p=>{const t=planStart(p).getTime(),n=Date.now();return p.time?(n>=t-10*60000&&n<=t+4*3600000):(p.date===TODAYISO)};
 function planList(kind){
  const l=PLANS.filter(p=>p.kind===kind);
- const head=`<button class="btn block" style="margin:0 0 14px" data-act="planopen" data-v="${kind}">${ic('plus',18)}${kind==='quedada'?'Organizar una quedada':'Organizar un maratón'}</button>`;
- if(!l.length)return head+EMPTY(kind==='quedada'?'Aún no hay quedadas. Organiza la primera: elige peli, día y hora.':'Aún no hay maratones. Organiza el primero y que se apunten las demás.');
- return head+l.map(p=>{const s=byId(p.tid),me=ME().handle===p.hh;return `<div class="card"><span class="tag">${dlabel(p.date)}${p.time?' · '+p.time:''}</span><h2 style="font-size:18px;margin:10px 0 4px">${s?esc(s.title):'Título'}</h2><p class="muted small" style="margin:0">Organiza <button class="ulink" data-act="user" data-v="${esc(p.hh)}" style="display:inline">${esc(p.host)}</button> · ${p.n} ${p.n===1?'apuntada':'apuntadas'}</p>${p.note?`<p style="margin:8px 0 0">${esc(p.note)}</p>`:''}<div class="wrap" style="margin-top:12px"><button class="btn ${p.j?'ghost':''}" data-act="pjoin" data-v="${p.id}" aria-pressed="${p.j}">${p.j?ic('check',18)+'Apuntada':'Apuntarme'}</button>${s?`<button class="btn ghost" data-act="open" data-id="${s.id}">Ver ficha</button>`:''}${me?`<button class="btn ghost" data-act="pdel" data-v="${p.id}">Cancelar</button>`:''}</div></div>`}).join('')}
+ const intro=`<div class="card" style="margin-bottom:14px"><b>${kind==='quedada'?'Noche de peli juntas':'Maratón juntas'}</b><p class="muted small" style="margin:6px 0 0">Quedáis a la misma hora y cada una lo ve desde su casa. Mientras tanto, comentáis en directo en el chat de la sesión.</p></div>
+ <button class="btn block" style="margin:0 0 14px" data-act="planopen" data-v="${kind}">${ic('plus',18)}${kind==='quedada'?'Organizar una noche de peli':'Organizar un maratón'}</button>`;
+ if(!l.length)return intro+EMPTY('Aún no hay sesiones. Organiza la primera: elige título, día y hora.');
+ return intro+l.map(p=>{const s=byId(p.tid),me=ME().handle===p.hh,lv=planLive(p);return `<div class="card"><span class="tag">${lv?'En directo ahora':dlabel(p.date)+(p.time?' · '+p.time:'')}</span><h2 style="font-size:18px;margin:10px 0 4px">${s?esc(s.title):'Título'}</h2><p class="muted small" style="margin:0">Organiza <button class="ulink" data-act="user" data-v="${esc(p.hh)}" style="display:inline">${esc(p.host)}</button> · ${p.n} ${p.n===1?'apuntada':'apuntadas'} · cada una desde su casa</p>${p.note?`<p style="margin:8px 0 0">${esc(p.note)}</p>`:''}<div class="wrap" style="margin-top:12px"><button class="btn ${p.j?'ghost':''}" data-act="pjoin" data-v="${p.id}" aria-pressed="${p.j}">${p.j?ic('check',18)+'Apuntada':'Apuntarme'}</button>${p.j?`<button class="btn ${lv?'':'ghost'}" data-act="liveopen" data-v="${p.id}">${ic('chat',18)}${lv?'Entrar al chat en directo':'Abrir el chat'}</button>`:''}${s?`<button class="btn ghost" data-act="open" data-id="${s.id}">Ver ficha</button>`:''}${me?`<button class="btn ghost" data-act="pdel" data-v="${p.id}">Cancelar</button>`:''}</div></div>`}).join('')}
+const liveItem=(c,mine)=>`<div class="cmt"><b>${esc(c.display||c.handle)}</b> <span class="muted small">${mine?'tú · ':''}${new Date(String(c.created_at).replace(' ','T')+'Z').toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}</span><p>${esc(c.body)}</p></div>`;
+function liveHTML(){const L=S.live;if(!L)return '';const p=PLANS.find(x=>x.id===L.id),t=p&&byId(p.tid);
+ return `<div class="sheet-head"><div class="grow"><h2>${t?esc(t.title):'Chat en directo'}</h2><p class="muted small" style="margin:2px 0 0">${p&&planLive(p)?'En directo · ':''}${p?p.n+' apuntadas':''} · cada una desde su casa</p></div><button class="icon-btn" data-act="liveclose" aria-label="Cerrar">${ic('close',18)}</button></div>
+ <div id="livelist" style="max-height:48vh;overflow:auto;margin-top:8px">${L.msgs.length?L.msgs.map(c=>liveItem(c,c.handle===ME().handle)).join(''):'<p class="muted small">Todavía no hay mensajes. Escribe el primero.</p>'}</div>
+ <div class="cform"><input id="f-lv" maxlength="300" placeholder="Escribe un mensaje" aria-label="Mensaje" autocomplete="off"><button class="btn" data-act="livesend">Enviar</button></div>`}
+let liveTimer=null;
+function liveFetch(){const L=S.live;if(!L||S.sheet!=='live'){clearInterval(liveTimer);liveTimer=null;return}
+ send('/plans/'+L.id+'/chat?after='+L.last).then(r=>{if(!S.live||S.live!==L)return;const m=r.messages||[];if(!m.length)return;L.msgs=L.msgs.concat(m);L.last=m[m.length-1].id;const el=$('#livelist');if(el){const atEnd=el.scrollHeight-el.scrollTop-el.clientHeight<60;if(L.msgs.length===m.length)el.innerHTML='';el.insertAdjacentHTML('beforeend',m.map(c=>liveItem(c,c.handle===ME().handle)).join(''));if(atEnd)el.scrollTop=el.scrollHeight}}).catch(()=>{})}
 function planHTML(){const d=S.plan||{};
- return `<div class="sheet-head"><div class="grow"><h2>${d.kind==='quedada'?'Organizar una quedada':'Organizar un maratón'}</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ return `<div class="sheet-head"><div class="grow"><h2>${d.kind==='quedada'?'Organizar una noche de peli':'Organizar un maratón'}</h2><p class="muted small" style="margin:4px 0 0">Cada una lo ve desde su casa a la misma hora y comentáis en el chat en directo.</p></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  <label class="fld"><span>Título</span><select id="f-pl-id"><option value="">Elige uno</option>${SHOWS.map(s=>`<option value="${s.id}" ${String(d.id)===String(s.id)?'selected':''}>${esc(s.title)}</option>`).join('')}</select></label>
  <label class="fld"><span>Día</span><input id="f-pl-d" type="date" min="${TODAYISO}" value="${esc(d.date||'')}"></label>
  <label class="fld"><span>Hora (opcional)</span><input id="f-pl-t" type="time" value="${esc(d.time||'')}"></label>
- <label class="fld"><span>Nota (opcional)</span><input id="f-pl-n" maxlength="140" placeholder="Por ejemplo: traed manta y palomitas" value="${esc(d.note||'')}"></label>
+ <label class="fld"><span>Nota (opcional)</span><input id="f-pl-n" maxlength="140" placeholder="Por ejemplo: episodios 1 a 4" value="${esc(d.note||'')}"></label>
  <button class="btn block" style="margin-top:16px" data-act="plansave">Crear</button>`}
 function maratones(){
  if(REAL)return planList('maraton');
@@ -980,7 +991,7 @@ function updateTabs(){const t=$('#tabs');if(!t.dataset.ready){t.innerHTML='<i cl
  [...t.querySelectorAll('button')].forEach((b,i)=>{const on=TABS[i][0]===S.tab;if(on&&b.getAttribute('aria-current')!=='page'){b.setAttribute('aria-current','page');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');t.style.setProperty('--i',i)}else if(!on)b.removeAttribute('aria-current')})}
 function updateSheet(){
  const sh=$('#sheet'),top=sh.scrollTop,was=sh.classList.contains('on');
- if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='comments'?commentsHTML():S.sheet==='plan'?planHTML():S.sheet==='mod'?modHTML():S.sheet==='blocks'?blocksHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
+ if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='comments'?commentsHTML():S.sheet==='plan'?planHTML():S.sheet==='live'?liveHTML():S.sheet==='mod'?modHTML():S.sheet==='blocks'?blocksHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
  if(!was&&S.sheet!==null){sh.classList.add('fresh');setTimeout(()=>sh.classList.remove('fresh'),800)}
  sh.classList.toggle('on',S.sheet!==null);$('#backdrop').classList.toggle('on',S.sheet!==null);
 }
@@ -1109,6 +1120,9 @@ document.addEventListener('click',e=>{
   case 'modblock':{const m=S.mod;send('/block/'+m.h,'POST').then(()=>{for(let i=POSTS.length-1;i>=0;i--)if(POSTS[i].u===m.h)POSTS.splice(i,1);if(S.cmts)S.cmts=S.cmts.filter(c=>c.handle!==m.h);S.sheet=null;updateSheet();toast('Usuaria bloqueada');render()}).catch(()=>toast('No se ha podido bloquear'));break}
   case 'blkopen':S.blks=null;S.sheet='blocks';updateSheet();send('/blocks').then(r=>{S.blks=r.blocks||[];updateSheet()}).catch(()=>{S.blks=[];updateSheet()});break;
   case 'unblock':send('/block/'+v,'DELETE').then(()=>{S.blks=(S.blks||[]).filter(u=>u.handle!==v);updateSheet();toast('Desbloqueada');load()}).catch(()=>toast('No se ha podido desbloquear'));break;
+  case 'liveopen':{const id=Number(v);S.live={id,msgs:[],last:0};S.sheet='live';updateSheet();liveFetch();clearInterval(liveTimer);liveTimer=setInterval(liveFetch,4000);break}
+  case 'liveclose':clearInterval(liveTimer);liveTimer=null;S.live=null;S.sheet=null;updateSheet();break;
+  case 'livesend':{const inp=$('#f-lv'),x=(inp&&inp.value||'').trim();if(!x||!S.live)break;inp.value='';send('/plans/'+S.live.id+'/chat','POST',{body:x}).then(()=>liveFetch()).catch(()=>toast('No se ha podido enviar'));break}
   case 'reveal':S.reveal.add(isNaN(Number(v))?v:Number(v));render();break;
   case 'pspoil':S.pspoil=!S.pspoil;updateSheet();break;
   case 'comments':{const k=isNaN(Number(v))?v:Number(v);const p=[...POSTS,...(typeof PROFPOSTS!=='undefined'?PROFPOSTS:[])].find(x=>x.k===k)||POSTS.find(x=>String(x.k)===String(k))||{k,u:'',n:'',x:'',c:0};if(typeof k!=='number'){toast('Los comentarios están disponibles en mensajes reales');break}S.cpost=p;S.cmts=null;S.sheet='comments';updateSheet();send('/posts/'+k+'/comments').then(r=>{S.cmts=r.comments||[];if(S.sheet==='comments'){const keep=($('#f-cm')||{}).value||'';updateSheet();if($('#f-cm'))$('#f-cm').value=keep}}).catch(()=>{S.cmts=[];updateSheet()});break}
@@ -1172,7 +1186,8 @@ document.addEventListener('input',e=>{const id=e.target.id;
  else if(id==='f-pl-n')S.plan.note=e.target.value
  else if(id==='f-pt')S.pdraft.id=e.target.value});
 document.addEventListener('change',e=>{if(e.target.id==='f-pt')S.pdraft.id=e.target.value;if(e.target.id==='f-pl-id'&&S.plan)S.plan.id=e.target.value;if(e.target.id==='f-pl-d'&&S.plan)S.plan.date=e.target.value;if(e.target.id==='f-pl-t'&&S.plan)S.plan.time=e.target.value});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='f-cm'){e.preventDefault();const b=document.querySelector('[data-act=cmsend]');b&&b.click();return}if(e.key==='Escape'&&S.sheet!==null){S.sheet=null;updateSheet()}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='f-lv'){e.preventDefault();const b=document.querySelector('[data-act=livesend]');b&&b.click();return}
+if(e.key==='Enter'&&e.target.id==='f-cm'){e.preventDefault();const b=document.querySelector('[data-act=cmsend]');b&&b.click();return}if(e.key==='Escape'&&S.sheet!==null){S.sheet=null;updateSheet()}});
 function fromHash(){const h=(location.hash||'').slice(1);if(VIEWS[h]&&h!==S.tab){S.tab=h;render(true)}}
 window.addEventListener('hashchange',fromHash);
 /* ---------- conexión con el servidor (si no hay, la app sigue con datos locales) ---------- */

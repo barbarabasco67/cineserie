@@ -31,6 +31,7 @@ function migrate(env) {
     migrated = (async () => {
       const steps = [
         'ALTER TABLE news ADD COLUMN image TEXT',
+        "CREATE TABLE IF NOT EXISTS plan_msgs (id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER NOT NULL, user_id TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
         'CREATE TABLE IF NOT EXISTS blocks (blocker_id TEXT NOT NULL, blocked_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), PRIMARY KEY (blocker_id, blocked_id))',
         "CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, reporter_id TEXT NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL, reason TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
         "CREATE TABLE IF NOT EXISTS plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, kind TEXT NOT NULL, title_id INTEGER NOT NULL, date TEXT NOT NULL, time TEXT, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
@@ -300,6 +301,28 @@ async function handleApi(request, env, url) {
     const res = await env.DB.prepare('INSERT INTO plans (user_id, kind, title_id, date, time, note) VALUES (?, ?, ?, ?, ?, ?)').bind(uid, kind, tid, date, time, txt(b.note, 140)).run();
     await env.DB.prepare('INSERT OR IGNORE INTO plan_members (plan_id, user_id) VALUES (?, ?)').bind(res.meta.last_row_id, uid).run();
     return json({ id: res.meta.last_row_id });
+  }
+  m = path.match(/^\/plans\/(\d+)\/chat$/);
+  if (m) {
+    const id = Number(m[1]);
+    const mem = await env.DB.prepare('SELECT 1 AS x FROM plan_members WHERE plan_id = ? AND user_id = ?').bind(id, uid).first();
+    if (!mem) return bad('apúntate para entrar al chat', 403);
+    if (method === 'GET') {
+      const after = Number(url.searchParams.get('after')) || 0;
+      const r = await env.DB.prepare(
+        `SELECT * FROM (SELECT g.id, g.body, g.created_at, u.handle, u.display FROM plan_msgs g JOIN users u ON u.id = g.user_id
+           WHERE g.plan_id = ? AND g.id > ? AND g.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = ?) AND g.user_id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = ?)
+           ORDER BY g.id DESC LIMIT 100) ORDER BY id ASC`
+      ).bind(id, after, uid, uid).all();
+      return json({ messages: r.results });
+    }
+    if (method === 'POST') {
+      const b = await readBody(request);
+      const body = b && txt(b.body, 300);
+      if (!body) return bad('mensaje vacío');
+      const res = await env.DB.prepare('INSERT INTO plan_msgs (plan_id, user_id, body) VALUES (?, ?, ?)').bind(id, uid, body).run();
+      return json({ id: res.meta.last_row_id });
+    }
   }
   m = path.match(/^\/plans\/(\d+)\/join$/);
   if (m && method === 'POST') {
