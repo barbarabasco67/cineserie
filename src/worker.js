@@ -35,6 +35,8 @@ function migrate(env) {
         'ALTER TABLE users ADD COLUMN pass_hash TEXT',
         'ALTER TABLE users ADD COLUMN pass_salt TEXT',
         'ALTER TABLE library ADD COLUMN review TEXT',
+        'ALTER TABLE titles ADD COLUMN collections TEXT',
+        'ALTER TABLE titles ADD COLUMN saga TEXT',
         'ALTER TABLE users ADD COLUMN avatar TEXT',
         'ALTER TABLE users ADD COLUMN banner TEXT',
         'ALTER TABLE users ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0',
@@ -79,7 +81,7 @@ async function handleApi(request, env, url) {
 
   if (path === '/state' && method === 'GET') {
     const titles = await env.DB.prepare(
-      "SELECT id, title, type, year, episodes, minutes, synopsis, genre, hue, platforms, tags, poster, director, writers, release_date, age, source, review_status,\n        (SELECT ROUND(AVG(json_extract(l.ratings, '$.score'))) FROM library l WHERE l.title_id = titles.id AND json_extract(l.ratings, '$.score') > 0) AS avg,\n        (SELECT COUNT(*) FROM library l WHERE l.title_id = titles.id AND json_extract(l.ratings, '$.score') > 0) AS votes\n       FROM titles WHERE (owner_id = ? OR review_status = 'approved')"
+      "SELECT id, title, type, year, episodes, minutes, synopsis, genre, hue, platforms, tags, poster, director, writers, release_date, age, collections, saga, source, review_status,\n        (SELECT ROUND(AVG(json_extract(l.ratings, '$.score'))) FROM library l WHERE l.title_id = titles.id AND json_extract(l.ratings, '$.score') > 0) AS avg,\n        (SELECT COUNT(*) FROM library l WHERE l.title_id = titles.id AND json_extract(l.ratings, '$.score') > 0) AS votes\n       FROM titles WHERE (owner_id = ? OR review_status = 'approved')"
     ).bind(uid).all();
     const library = await env.DB.prepare('SELECT title_id, status, episode, ratings, review FROM library WHERE user_id = ?').bind(uid).all();
     const posts = await env.DB.prepare(

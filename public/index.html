@@ -407,6 +407,7 @@ const ic=(n,s=20)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="no
 const STATUS=['Quiero ver','Viendo','Vista','Abandonada'];
 const statusFor=s=>STATUS;
 const PLATFORMS=['Netflix','Prime Video','Disney+','Max','Movistar+','Filmin','SkyShowtime','Apple TV+','RTVE Play','Atresplayer'];
+const COLLS=[['Saga','Sagas'],['Trilogía','Trilogías'],['Biopic','Biopics'],['Libro','Basadas en libros']];
 const MOODS=['Spicy','Slow burn','Enemies to lovers','Fake dating','Grumpy x sunshine','Forbidden love','Situationship','Dark romance','Plot twist','Girls night','Para llorar','Comfort','Cozy autumn','Hot girl summer','Main character energy'];
 const CATS=[
  {k:'llorar',n:'Llorar',i:'drop',c:'#8fc1f0'},{k:'reir',n:'Reír',i:'smile',c:'#f4cf7a'},
@@ -530,7 +531,7 @@ const POLL=[2,6,7], FRIENDS={Lucía:2,Marta:6,Irene:6}, AVC={Lucía:'#f4a97b',Ma
 
 /* ---------- estado ---------- */
 const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix','Prime Video','Filmin']),
- filter:'Todas',mood:null,mine:true,q:'',tonight:null,night:null,sheet:null,vote:null,owned:new Set(),
+ filter:'Todas',mood:null,coll:null,mine:true,q:'',tonight:null,night:null,sheet:null,vote:null,owned:new Set(),
  dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,decoSel:null,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
 let REAL=false;
 const byId=id=>SHOWS.find(s=>s.id===id);
@@ -739,6 +740,7 @@ descubrir(){
  <label class="search">${ic('search',18)}<input id="q" type="search" placeholder="Buscar series y películas" value="${esc(S.q)}" aria-label="Buscar"></label>
  <div class="seg3" role="group" aria-label="Tipo">${[[null,'Todo'],['Película','Películas'],['Serie','Series']].map(([k,n])=>`<button aria-pressed="${S.kind===k}" data-act="kind" data-v="${k||''}">${n}</button>`).join('')}</div>
  ${dd('cat','Categorías',S.mood||'Todas',MOODS.map(m=>`<button class="chip" aria-pressed="${S.mood===m}" data-act="mood" data-v="${m}">${m}</button>`).join(''))}
+ ${dd('coll','Colecciones',S.coll?COLLS.find(c=>c[0]===S.coll)[1]:'Todas',COLLS.map(([k,n])=>`<button class="chip" aria-pressed="${S.coll===k}" data-act="coll" data-v="${k}">${n} · ${SHOWS.filter(x=>(x.coll||[]).includes(k)).length}</button>`).join(''))}
  ${dd('plat','Plataformas',S.platforms.size?S.platforms.size+' elegidas':'Ninguna',PLATFORMS.map(p=>`<button class="chip" aria-pressed="${S.platforms.has(p)}" data-act="plat" data-v="${p}">${p}</button>`).join(''))}
  <button class="switch" role="switch" aria-checked="${S.mine}" data-act="mine"><span>Solo en mis plataformas</span><span class="tr"></span></button>
  <h3>Para ti</h3><div class="card" style="padding:4px 16px" id="results">${results()}</div>`},
@@ -756,9 +758,10 @@ perfil(){return S.ajustes?ajustesView():profileView()}
 
 function results(){
  const q=S.q.trim().toLowerCase();
- const l=SHOWS.filter(s=>(!S.kind||s.type===S.kind)&&(!q||s.title.toLowerCase().includes(q))&&(!S.mood||s.tags.includes(S.mood))&&(!S.mine||avail(s).length));
+ const l=SHOWS.filter(s=>(!S.kind||s.type===S.kind)&&(!q||s.title.toLowerCase().includes(q))&&(!S.mood||s.tags.includes(S.mood))&&(!S.coll||(s.coll||[]).includes(S.coll))&&(!S.mine||avail(s).length));
  if(!l.length)return `<p class="muted" style="padding:12px 0 6px;margin:0">Nada con esos filtros. Prueba a añadir plataformas${q?' o súbela tú':''}.</p>${q?`<div style="padding:6px 0 14px"><button class="btn block" data-act="addopen" data-q="${esc(S.q.trim())}">${ic('plus',18)}Añadir «${esc(S.q.trim())}»</button></div>`:''}`;
- return l.map(s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${kind(s)} ${s.tags.slice(0,2).join(' · ')}${s.source==='user'?' · tuya':''}</span><span class="clamp">${esc(s.syn)}</span><span class="wrap" style="margin-top:6px">${platChips(s)}</span></span>${s.avg?ring(s.avg,38,false):''}${ic('chevron',18)}</button>`).join('')}
+ if(S.coll==='Saga'||S.coll==='Trilogía')l.sort((a,b)=>(a.saga||a.title).localeCompare(b.saga||b.title)||(a.year||0)-(b.year||0));
+ return l.map(s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${kind(s)} ${s.saga?'Saga «'+esc(s.saga)+'» · ':''}${s.tags.slice(0,2).join(' · ')}${s.source==='user'?' · tuya':''}</span><span class="clamp">${esc(s.syn)}</span><span class="wrap" style="margin-top:6px">${platChips(s)}</span></span>${s.avg?ring(s.avg,38,false):''}${ic('chevron',18)}</button>`).join('')}
 
 /* ---------- comunidad: lugares ---------- */
 function scene(k){
@@ -856,6 +859,7 @@ function sheetHTML(s){
  const mine=avail(s);
  return `<div class="sheet-head big">${poster(s)}<div class="grow"><div><h2>${s.title}</h2><p class="muted" style="margin:6px 0 0;font-size:14px">${kind(s)} ${s.year} · ${s.type==='Serie'?s.eps+' episodios':fmtMin(s.min)}</p>${s.director?`<p class="muted" style="margin:6px 0 0;font-size:14px">Dirige ${esc(s.director)}</p>`:''}</div><div class="tags">${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  ${crewHTML(s)}
+ ${(s.coll&&s.coll.length)||s.saga?`<div class="wrap" style="margin-top:10px">${(s.coll||[]).map(k=>`<span class="tag">${(COLLS.find(c=>c[0]===k)||[0,k])[1].replace(/s$/,'').replace('Basadas','Basada')}${k==='Saga'&&s.saga?': '+esc(s.saga):''}</span>`).join('')}</div>`:''}
  <h3>Sinopsis</h3><p class="syn">${esc(s.syn)}</p><p class="muted small" style="margin:8px 0 0">${s.source==='user'?(s.proposed?'Añadido por ti · en revisión para el catálogo común':'Añadido por ti'):'Del catálogo'}</p>
  <h3>Estado</h3><div class="row-scroll">${statusFor(s).map(st=>`<button class="chip" aria-pressed="${s.status===st}" data-act="status" data-id="${s.id}" data-v="${st}">${st}</button>`).join('')}</div>
  ${s.type==='Serie'&&s.status&&s.status!=='Quiero ver'?`<div class="stepper"><button class="icon-btn" data-act="ep" data-id="${s.id}" data-v="-1" aria-label="Un episodio menos">${ic('minus',18)}</button><span><b>${s.ep}</b> de ${s.eps} episodios</span><button class="icon-btn" data-act="ep" data-id="${s.id}" data-v="1" aria-label="Un episodio más">${ic('plus',18)}</button></div>`:''}
@@ -994,6 +998,7 @@ document.addEventListener('click',e=>{
   case 'want':s.status='Quiero ver';toast('Añadida a Quiero ver');syncLib(s);render();break;
   case 'kind':S.kind=v||null;render();break;
   case 'dd':S.dd=S.dd===v?null:v;render();break;
+  case 'coll':S.coll=S.coll===v?null:v;render();break;
   case 'mood':S.mood=S.mood===v?null:v;render();break;
   case 'mine':S.mine=!S.mine;render();break;
   case 'plat':S.platforms.has(v)?S.platforms.delete(v):S.platforms.add(v);render();break;
@@ -1076,7 +1081,7 @@ function load(){
  send('/state').then(d=>{
   SHOWS.length=0;[GMAP,STATS,FRIENDS].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));[PREM,POSTS,CLUBS,POLL,DIRS,CRIT,NEWS].forEach(a=>a.length=0);REAL=true;
   WEEKLY=d.weekly||[];S.me=d.me||null;
-  d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({avg:t.avg,votes:t.votes,id:t.id,poster:t.poster,director:t.director,writers:t.writers,release:t.release_date,age:t.age,title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
+  d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({avg:t.avg,votes:t.votes,id:t.id,poster:t.poster,director:t.director,writers:t.writers,release:t.release_date,age:t.age,coll:(t.collections||'').split(',').map(x=>x.trim()).filter(Boolean),saga:t.saga||'',title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
   d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status==='En pausa'?'Viendo':l.status;s.ep=l.episode;s.review=l.review||'';try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
   d.posts.slice().reverse().forEach(p=>{if(POSTS.some(x=>x.k===p.id))return;const mine=p.liked>0;if(mine)S.liked.add(p.id);POSTS.unshift({k:p.id,u:p.handle,n:p.display,h:'@'+p.handle,t:ago(p.created_at),x:p.body,id:p.title_id,l:p.likes-(mine?1:0),c:0})});
   render();

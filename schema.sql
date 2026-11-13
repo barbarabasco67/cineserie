@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS titles (
   writers TEXT,
   release_date TEXT,
   age TEXT,
+  collections TEXT,
+  saga TEXT,
   type TEXT NOT NULL CHECK (type IN ('Serie','Película')),
   year INTEGER,
   episodes INTEGER NOT NULL DEFAULT 1,
