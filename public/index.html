@@ -51,6 +51,11 @@ svg{display:block}
 .tn-btn{padding:14px 22px;font-size:16px;box-shadow:0 10px 26px -6px rgba(var(--acc-rgb),.75)}
 .tn-ghost{background:rgba(255,255,255,.08);color:#fff3ea;border-color:rgba(255,255,255,.25)}
 @media (prefers-reduced-motion:reduce){.tonight::before,.tn-beam{animation:none}}
+.sign-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}.sign-row h1{margin:4px 0 0}
+.sg{display:flex;flex-direction:column;align-items:center;gap:3px;width:58px;padding:7px 0;border-radius:12px;border:1px solid rgba(var(--acc-rgb),.45);background:rgba(var(--acc-rgb),.1);color:var(--accent);font:700 10px var(--fb);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;flex:none}.sg:active{transform:scale(.94)}
+.deco-shelf{margin-bottom:6px}.decos{display:flex;justify-content:space-around;align-items:flex-end;min-height:66px;padding:0 6px}.deco{display:block;width:56px;height:56px;filter:drop-shadow(0 6px 6px rgba(0,0,0,.45))}.deco svg{width:100%;height:100%;display:block}.deco.lampara{filter:drop-shadow(0 0 14px rgba(255,200,120,.55))}
+.deco-empty{display:block;width:100%;border:0;cursor:pointer;color:var(--accent);font:700 13px var(--fb);margin-bottom:6px}.deco-empty>span{display:flex;align-items:center;justify-content:center;gap:6px;min-height:54px;border:1px dashed rgba(var(--acc-rgb),.45);border-radius:10px;margin-bottom:4px}
+.decopick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.dpick{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;border-radius:12px;border:2px solid var(--line);background:var(--card2);color:inherit;cursor:pointer;font:600 11px var(--fb)}.dpick[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--acc-rgb),.3)}.dpick .dv{width:42px;height:42px;display:block}.dpick svg{width:100%;height:100%}
 .nprog{display:flex;gap:6px;margin:14px 0 4px}.nprog i{flex:1;height:4px;border-radius:9px;background:var(--line)}.nprog i.on{background:var(--accent)}
 .nopts{display:grid;gap:10px;margin-top:12px}.nopt{display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--card2);color:inherit;font:inherit;cursor:pointer;transition:transform .15s,border-color .2s}.nopt:active{transform:scale(.98)}.nopt:hover{border-color:var(--accent)}.nopt .si{color:var(--accent);display:grid}
 .chip{border:1px solid var(--line);background:transparent;padding:5px 11px;border-radius:999px;font:600 12px var(--fb);cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
@@ -447,6 +452,16 @@ const NEWS=[
  {k:'Se va',t:'«Mi vecino el fiscal» deja SkyShowtime el 30 de noviembre',x:'Si la tienes en pendientes, este es el mes para verla.',id:6,w:'Hace 3 días'},
  {k:'Estreno',t:'«Café y otras mentiras» ya tiene fecha en Filmin',x:'Llegará el 20 de noviembre con los ocho episodios de golpe.',id:11,w:'Hace 4 días'},
  {k:'Entrevista',t:'Las creadoras de «Primavera en Seúl» hablan de su ritmo pausado',x:'Sin spoilers: explican por qué quisieron una historia que se cuece a fuego lento.',id:4,w:'Esta semana'}];
+const DECO=[
+ {k:'planta',n:'Planta',svg:'<svg viewBox="0 0 60 60"><path d="M30 38C28 28 20 22 12 22c2 9 8 15 18 16zM30 38c2-12 10-18 19-18-2 11-9 17-19 18z" fill="#6f9a62"/><path d="M30 38c-1-9 0-16 4-22-5 4-7 12-4 22z" fill="#8fb97f"/><path d="M19 38h22l-3 17H22z" fill="#b5653a"/><rect x="17" y="35" width="26" height="5" rx="2" fill="#cf7a49"/></svg>'},
+ {k:'lampara',n:'Lámpara',svg:'<svg viewBox="0 0 60 60"><circle cx="30" cy="26" r="24" fill="rgba(255,206,130,.22)"/><path d="M19 14h22l6 20H13z" fill="#f2b866"/><path d="M19 14h22l1.8 6H17.200z" fill="#ffd89c"/><rect x="28.500" y="34" width="3" height="16" fill="#8a6a3a"/><ellipse cx="30" cy="52" rx="11" ry="3.500" fill="#6b4a2a"/></svg>'},
+ {k:'palomitas',n:'Palomitas',svg:'<svg viewBox="0 0 60 60"><circle cx="21" cy="19" r="6" fill="#fff0c2"/><circle cx="31" cy="15" r="7" fill="#ffe9a8"/><circle cx="40" cy="20" r="6" fill="#fff0c2"/><circle cx="27" cy="23" r="6" fill="#ffe9a8"/><path d="M14 25h32l-4 30H18z" fill="#fff"/><path d="M14 25h7l1.500 30H18zM28 25h6l-1 30h-4zM39 25h7l-4 30h-3.500z" fill="#c83a3a"/></svg>'},
+ {k:'claqueta',n:'Claqueta',svg:'<svg viewBox="0 0 60 60"><rect x="10" y="26" width="40" height="26" rx="3" fill="#2b2420"/><path d="M10 26l36-9 3 9z" fill="#3a302a"/><path d="M13 24l7-5 6 5-7 5zM27 21l7-3 6 5-7 4zM41 18l7-2 2 7z" fill="#f1ece4"/><rect x="15" y="33" width="30" height="2.500" rx="1" fill="#6d5f55"/><rect x="15" y="39" width="22" height="2.500" rx="1" fill="#6d5f55"/></svg>'},
+ {k:'trofeo',n:'Trofeo',svg:'<svg viewBox="0 0 60 60"><path d="M18 10h24v12c0 8-5 13-12 13s-12-5-12-13z" fill="#e8b84a"/><path d="M18 14h-7c0 8 3 12 8 13M42 14h7c0 8-3 12-8 13" fill="none" stroke="#e8b84a" stroke-width="3"/><rect x="27" y="35" width="6" height="9" fill="#cf9b2c"/><rect x="19" y="44" width="22" height="8" rx="2" fill="#8a5a36"/><path d="M22 12h5v14c-3-1-5-4-5-8z" fill="#fbe08f"/></svg>'},
+ {k:'proyector',n:'Proyector',svg:'<svg viewBox="0 0 60 60"><circle cx="20" cy="15" r="10" fill="#4a4038"/><circle cx="20" cy="15" r="4" fill="#1a1410"/><circle cx="40" cy="15" r="10" fill="#4a4038"/><circle cx="40" cy="15" r="4" fill="#1a1410"/><rect x="10" y="26" width="34" height="18" rx="3" fill="#6b5a4c"/><path d="M44 30h8v10h-8z" fill="#2b2420"/><rect x="14" y="30" width="14" height="3" rx="1.500" fill="#8f7b69"/><path d="M18 44l-3 9M36 44l3 9" stroke="#2b2420" stroke-width="3"/></svg>'},
+ {k:'velas',n:'Velas',svg:'<svg viewBox="0 0 60 60"><rect x="10" y="30" width="12" height="24" rx="2" fill="#f4e9d6"/><rect x="25" y="22" width="12" height="32" rx="2" fill="#e9d9bd"/><rect x="40" y="34" width="10" height="20" rx="2" fill="#f4e9d6"/><path d="M16 27c-4-4 0-8 0-11 3 3 4 7 0 11zM31 19c-4-4 0-8 0-11 3 3 4 7 0 11zM45 31c-3-3 0-6 0-9 2 2 3 6 0 9z" fill="#ffb347"/></svg>'},
+ {k:'marco',n:'Cuadro',svg:'<svg viewBox="0 0 60 60"><rect x="8" y="8" width="44" height="44" rx="2" fill="#8a5a36"/><rect x="13" y="13" width="34" height="34" fill="#2a3a52"/><path d="M13 47l10-14 7 8 6-7 11 13z" fill="#4f7a6a"/><circle cx="38" cy="22" r="4" fill="#f2d388"/></svg>'}];
+let _dz=[];try{_dz=JSON.parse(localStorage.getItem('cs_deco')||'[]').filter(k=>DECO.some(d=>d.k===k))}catch{}
 const FIN={
  nogal:{n:'Nogal',w1:'#241811',w2:'#170f0a',b1:'#8a5a36',b2:'#523322',prem:false},
  roble:{n:'Roble',w1:'#34281a',w2:'#241b11',b1:'#c79a5c',b2:'#8a6a3a',prem:false},
@@ -483,7 +498,7 @@ const POLL=[2,6,7], FRIENDS={Lucía:2,Marta:6,Irene:6}, AVC={Lucía:'#f4a97b',Ma
 /* ---------- estado ---------- */
 const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix','Prime Video','Filmin']),
  filter:'Todas',mood:null,mine:true,q:'',tonight:null,night:null,sheet:null,vote:null,owned:new Set(),
- dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
+ dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
 let REAL=false;
 const byId=id=>SHOWS.find(s=>s.id===id);
 const dd=(k,t,v,body)=>`<div class="dd"><button class="dd-h" aria-expanded="${S.dd===k}" data-act="dd" data-v="${k}"><span><b>${t}</b><small>${v}</small></span>${ic('chevron',16)}</button>${S.dd===k?`<div class="wrap dd-b">${body}</div>`:''}</div>`;
@@ -667,10 +682,10 @@ videoclub(){
  const rows=[];for(let i=0;i<list.length;i+=per)rows.push(list.slice(i,i+per));
  const f=FIN[S.vfin];
  const bulbs='<i></i>'.repeat(14);
- return `<div class="sign"><div class="bulbs" aria-hidden="true">${bulbs}</div><h1>Videoclub</h1><p class="muted small" style="margin:2px 0 0">Tus series y pelis, en su estantería</p><div class="bulbs" aria-hidden="true">${bulbs}</div></div>
- <div class="wrap" style="margin-bottom:12px"><button class="btn" data-act="addopen">${ic('plus',18)}Añadir título</button><button class="btn ghost" data-act="styleopen">${ic('brush',18)}Personalizar</button></div>
+ const dec=DECO.filter(d=>S.deco.includes(d.k));
+ return `<div class="sign"><div class="bulbs" aria-hidden="true">${bulbs}</div><div class="sign-row"><button class="sg" data-act="addopen" aria-label="Añadir título">${ic('plus',20)}<span>Añadir</span></button><div><h1>Videoclub</h1><p class="small" style="margin:2px 0 0;color:var(--soft);opacity:.8">${list.length} ${list.length===1?'título':'títulos'} en tu estantería</p></div><button class="sg" data-act="styleopen" aria-label="Personalizar y decorar">${ic('brush',20)}<span>Decorar</span></button></div><div class="bulbs" aria-hidden="true">${bulbs}</div></div>
  <div class="row-scroll" role="group" aria-label="Filtrar por estado">${F.map(f=>`<button class="chip" aria-pressed="${S.filter===f}" data-act="filter" data-v="${f}">${f}</button>`).join('')}</div>
- <div style="margin-top:20px;--w1:${f.w1};--w2:${f.w2};--b1:${f.b1};--b2:${f.b2}">${rows.map(r=>`<div class="shelf ${S.vstyle==='cuadricula'?'grid3':''}"><div class="slots ${S.vstyle==='compacto'?'c4':''} ${S.vstyle==='cuadricula'?'g':''}">${r.map(s=>`<button class="pcard" data-act="open" data-id="${s.id}" aria-label="${s.title}, ${s.status}">${poster(s,'tiny')}${S.vstyle==='compacto'?'':`<span class="stub">${s.status}</span>`}${s.status==='Viendo'?`<div class="bar"><i style="width:${pct(s)}%"></i></div>`:''}</button>`).join('')}</div>${S.vstyle==='cuadricula'?'':'<div class="plank"></div>'}</div>`).join('')}</div>
+ <div style="margin-top:20px;--w1:${f.w1};--w2:${f.w2};--b1:${f.b1};--b2:${f.b2}">${dec.length?`<div class="shelf deco-shelf"><div class="decos">${dec.map(d=>`<span class="deco ${d.k}" aria-label="${d.n}">${d.svg}</span>`).join('')}</div><div class="plank"></div></div>`:`<button class="shelf deco-empty" data-act="styleopen"><span>${ic('plus',16)}Decora tu estantería</span><div class="plank"></div></button>`}${rows.map(r=>`<div class="shelf ${S.vstyle==='cuadricula'?'grid3':''}"><div class="slots ${S.vstyle==='compacto'?'c4':''} ${S.vstyle==='cuadricula'?'g':''}">${r.map(s=>`<button class="pcard" data-act="open" data-id="${s.id}" aria-label="${s.title}, ${s.status}">${poster(s,'tiny')}${S.vstyle==='compacto'?'':`<span class="stub">${s.status}</span>`}${s.status==='Viendo'?`<div class="bar"><i style="width:${pct(s)}%"></i></div>`:''}</button>`).join('')}</div>${S.vstyle==='cuadricula'?'':'<div class="plank"></div>'}</div>`).join('')}</div>
  ${list.length?'':'<div class="card muted">Aquí no hay nada todavía.</div>'}`},
 
 descubrir(){
@@ -823,6 +838,7 @@ function addHTML(){const d=S.draft;
 function styleHTML(){
  return `<div class="sheet-head"><div class="grow"><h2>Personalizar videoclub</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  <h3>Estilo</h3><div class="wrap">${[['estanteria','Estantería'],['cuadricula','Cuadrícula'],['compacto','Compacto']].map(([k,n])=>`<button class="chip" aria-pressed="${S.vstyle===k}" data-act="vstyle" data-v="${k}">${n}</button>`).join('')}</div>
+ <h3>Decoración</h3><p class="muted small" style="margin:0 0 10px">Elige hasta 5 objetos para la balda de arriba.</p><div class="decopick">${DECO.map(d=>`<button class="dpick" aria-pressed="${S.deco.includes(d.k)}" data-act="deco" data-v="${d.k}"><span class="dv">${d.svg}</span><b>${d.n}</b></button>`).join('')}</div>
  <h3>Acabado</h3><div class="fins">${Object.entries(FIN).map(([k,f])=>`<button class="fin" aria-pressed="${S.vfin===k}" data-act="vfin" data-v="${k}"><span class="sw" style="background:linear-gradient(${f.b1},${f.w1})"></span><span>${f.n}</span>${f.prem?`<span class="prem">${ic('lock',12)}Premium</span>`:''}</button>`).join('')}</div>`}
 
 /* ---------- render ---------- */
@@ -908,7 +924,7 @@ document.addEventListener('click',e=>{
   case 'filter':S.filter=v;render();break;
   case 'open':S.sheet=id;updateSheet();break;
   case 'close':S.sheet=null;updateSheet();break;
-  case 'status':s.status=v;if(v==='Vista')s.ep=s.eps;if(v==='Quiero ver')s.ep=0;syncLib(s);render();break;
+  case 'status':if(s.status===v){s.status=null;s.ep=0;send('/library/'+s.id,'DELETE').catch(()=>{});toast('Quitada de tu videoclub');render();updateSheet();break}s.status=v;if(v==='Vista')s.ep=s.eps;if(v==='Quiero ver')s.ep=0;syncLib(s);render();break;
   case 'ep':s.ep=Math.max(0,Math.min(s.eps,s.ep+Number(v)));syncLib(s);render();break;
   case 'clearscore':{s.r.score=0;syncLib(s);render();updateSheet();if(REAL)setTimeout(load,600);break}
   case 'rate':{const k=a.dataset.k,n=Number(v);s.r[k]=s.r[k]===n?0:n;syncLib(s);render();break}
@@ -969,6 +985,7 @@ document.addEventListener('click',e=>{
   case 'th':{const k=a.dataset.k;TH[k]=k==='zoom'?Number(v):k==='calm'?v==='true':v;saveTheme();applyTheme();updateSheet();break}
   case 'threset':TH={...TH0};saveTheme();applyTheme();updateSheet();break;
   case 'styleopen':S.sheet='style';updateSheet();break;
+  case 'deco':{const i=S.deco.indexOf(v);if(i>=0)S.deco.splice(i,1);else if(S.deco.length>=5){toast('Máximo 5 objetos');break}else S.deco.push(v);try{localStorage.setItem('cs_deco',JSON.stringify(S.deco))}catch{}render();updateSheet();break}
   case 'vstyle':S.vstyle=v;render();break;
   case 'vfin':if(FIN[v].prem){toast('Es un acabado Premium');break}S.vfin=v;render();break;
   case 'atab':S.atab=v;render();break;

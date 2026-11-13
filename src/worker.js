@@ -116,6 +116,10 @@ async function handleApi(request, env, url) {
   }
 
   let m = path.match(/^\/library\/(\d+)$/);
+  if (m && method === 'DELETE') {
+    await env.DB.prepare('DELETE FROM library WHERE user_id = ? AND title_id = ?').bind(uid, Number(m[1])).run();
+    return json({ ok: true });
+  }
   if (m && method === 'PUT') {
     const b = await readBody(request);
     if (!b || !STATUS.includes(b.status)) return bad('estado no válido');
