@@ -336,7 +336,7 @@ const FIN={
  rosa:{n:'Rosa palo',w1:'#e6c3c3',w2:'#d3a9a9',b1:'#f3dcdc',b2:'#d1a5a5',prem:true},
  matcha:{n:'Matcha',w1:'#b9c8a3',w2:'#a2b38b',b1:'#d6e0c6',b2:'#9db083',prem:true}};
 const STATS={1:[820,5400,4.3],2:[610,2100,3.9],3:[1500,9800,4.6],4:[940,6100,4.2],5:[210,3400,3.4],6:[1250,4800,4.1],7:[700,1200,4.0],8:[480,1900,4.4],9:[530,3300,4.0],10:[890,5200,4.1],11:[300,300,3.8],12:[180,2400,4.5],13:[420,1300,4.4],14:[1100,7700,4.2],15:[360,900,4.5],16:[540,1500,3.8],17:[290,2600,4.6],18:[640,3100,4.3],19:[770,1800,4.0],20:[90,700,4.7]};
-const GENRES=[{k:'Comedia romántica',i:'heart'},{k:'Drama',i:'drop'},{k:'Cozy',i:'mug'},{k:'Misterio',i:'search'},{k:'Fantasía',i:'compass'},{k:'Slow cinema',i:'hourglass'},{k:'Comedia',i:'smile'}];
+const GENRES=[{k:'Comedia romántica',i:'heart'},{k:'Drama',i:'drop'},{k:'Cozy',i:'mug'},{k:'Misterio',i:'search'},{k:'Fantasía',i:'compass'},{k:'Slow cinema',i:'hourglass'},{k:'Comedia',i:'smile'},{k:'Romance',i:'heart'},{k:'Suspense',i:'bolt'}];
 const GMAP={1:'Misterio',2:'Comedia',3:'Cozy',4:'Drama',5:'Misterio',6:'Comedia romántica',7:'Drama',8:'Fantasía',9:'Drama',10:'Comedia romántica',11:'Comedia romántica',12:'Comedia',13:'Slow cinema',14:'Drama',15:'Cozy',16:'Comedia',17:'Drama',18:'Fantasía',19:'Comedia romántica',20:'Slow cinema'};
 const DIRS=[{n:'Clara Beltrán',f:3,v:4120},{n:'Irene Solís',f:2,v:2890},{n:'Marta Ochoa',f:2,v:2210},{n:'Noa Valdés',f:1,v:1480}];
 const CLUBS=[{id:3,t:'Releemos el final de «Hasta que cierre el café»',w:'Domingo 22 nov · 18:00',n:62,p:'Episodio 12'},{id:1,t:'Maratón de «Cartas desde el faro»',w:'Viernes 20 nov · 21:00',n:48,p:'Episodios 5 a 7'},{id:6,t:'«Mi vecino el fiscal» antes de que se vaya',w:'Sábado 28 nov · 20:30',n:31,p:'Episodios 1 a 4'}];
@@ -669,7 +669,7 @@ function syncLib(s){if(s.status)send('/library/'+s.id,'PUT',{status:s.status,epi
 const ago=d=>{const m=Math.max(0,Math.round((Date.now()-new Date(d.replace(' ','T')+'Z'))/60000));return m<2?'Ahora':m<60?`Hace ${m} min`:m<1440?`Hace ${Math.round(m/60)} h`:`Hace ${Math.round(m/1440)} d`};
 function load(){
  send('/state').then(d=>{
-  d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({id:t.id,title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:'user',proposed:t.review_status==='pending'})});
+  d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({id:t.id,title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
   d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status;s.ep=l.episode;try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
   d.posts.slice().reverse().forEach(p=>{if(POSTS.some(x=>x.k===p.id))return;const mine=p.liked>0;if(mine)S.liked.add(p.id);POSTS.unshift({k:p.id,u:p.handle,h:'@'+p.handle,t:ago(p.created_at),x:p.body,id:p.title_id,l:p.likes-(mine?1:0),c:0})});
   render();
