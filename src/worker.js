@@ -30,6 +30,7 @@ function migrate(env) {
   if (!migrated) {
     migrated = (async () => {
       const steps = [
+        'ALTER TABLE news ADD COLUMN image TEXT',
         'ALTER TABLE users ADD COLUMN display TEXT',
         'ALTER TABLE users ADD COLUMN bio TEXT',
         'ALTER TABLE users ADD COLUMN pass_hash TEXT',
@@ -97,7 +98,7 @@ async function handleApi(request, env, url) {
          WHERE updated_at >= datetime('now', '-7 days') AND json_extract(ratings, '$.score') > 0)
        GROUP BY title_id ORDER BY avg DESC, votes DESC LIMIT 10`
     ).all();
-    const news = await env.DB.prepare('SELECT id, kind, title, body, title_id, event_date, platform, published_at FROM news ORDER BY published_at DESC, id DESC LIMIT 40').all();
+    const news = await env.DB.prepare('SELECT id, kind, title, body, title_id, event_date, platform, image, published_at FROM news ORDER BY published_at DESC, id DESC LIMIT 40').all();
     const me = await meInfo(env, uid);
     return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results, news: news.results });
   }

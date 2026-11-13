@@ -208,6 +208,17 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--soft);outline-o
 .bell[aria-pressed="true"]{background:var(--accent);color:var(--ink);border-color:var(--accent)}
 .news{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:14px 0;cursor:pointer}
 .news:last-child{border-bottom:0}
+.ncard{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-top:12px;padding:0;color:inherit;font:inherit}
+button.ncard{cursor:pointer}
+.ncard .ph{height:150px;background-size:cover;background-position:center top;position:relative;display:flex;align-items:flex-end;padding:12px 14px}
+.ncard .ph.fb{background:linear-gradient(135deg,hsl(var(--h) 45% 26%),hsl(calc(var(--h) + 30) 50% 14%))}
+.ncard .ph.fb svg{position:absolute;right:14px;top:14px;opacity:.35}
+.ncard .ph .pl{font:700 12px var(--fb);letter-spacing:.08em;text-transform:uppercase;background:rgba(0,0,0,.45);padding:5px 10px;border-radius:20px;color:#fff}
+.ncard .bd{padding:12px 16px 16px}
+.ncard .k{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.ncard b{display:block;font:700 17px/1.25 var(--ft);margin:4px 0 6px}
+.ncard .muted{display:block}
+.ncard .dd{display:flex;width:max-content;gap:6px;align-items:center;margin-top:10px;font-size:13px;font-weight:600;color:var(--accent)}
 .news .k{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .news b{display:block;font:700 16px/1.25 var(--ft);margin:4px 0}
 .fld{display:block;margin-top:14px}
@@ -872,8 +883,12 @@ function calendar(){
   <button class="icon-btn bell" data-act="bell" data-v="${p.i}" aria-pressed="${S.bells.has(p.i)}" aria-label="Avisarme: ${p.t}">${ic('bell',18)}</button></div>`}).join(''):'<p class="muted" style="padding:12px 0;margin:0">Sin estrenos '+(S.cday?'este día':'próximos')+'.</p>'}</div>`}
 function newsView(){
  const l=NEWS.filter(n=>!S.newsMine||(n.id&&byId(n.id)&&byId(n.id).status));
+ const card=n=>{const t=n.id&&byId(n.id);const img=n.img||(t&&t.poster)||'';
+  const ph=img?`<div class="ph" style="background-image:url('${img}')">${n.p?`<span class="pl">${esc(n.p)}</span>`:''}</div>`:`<div class="ph fb" style="--h:${(n.nid*47)%360}">${ic('play',46)}${n.p?`<span class="pl">${esc(n.p)}</span>`:''}</div>`;
+  const c=`${ph}<div class="bd"><span class="k">${n.k} · ${n.w}</span><b>${n.t}</b><span class="muted small">${n.x}</span>${n.date?`<span class="dd">${ic('clock',15)} ${dlabel(n.date)}</span>`:''}</div>`;
+  return t?`<button class="ncard" data-act="open" data-id="${n.id}">${c}</button>`:`<div class="ncard">${c}</div>`};
  return `<button class="switch" role="switch" aria-checked="${S.newsMine}" data-act="newsmine" style="margin-top:0"><span>Solo de mis series</span><span class="tr"></span></button>
- <div class="card" style="padding:4px 16px;margin-top:10px">${l.length?l.map(n=>{const c=`<span class="k">${n.k} · ${n.w}</span><b>${n.t}</b><span class="muted small">${n.x}</span>`;return n.id&&byId(n.id)?`<button class="news" data-act="open" data-id="${n.id}">${c}</button>`:`<div class="news">${c}</div>`}).join(''):'<p class="muted" style="padding:12px 0;margin:0">Aún no hay noticias de tus series.</p>'}</div>`}
+ ${l.length?l.map(card).join(''):'<div class="card" style="margin-top:10px"><p class="muted" style="margin:0">Aún no hay noticias de tus series.</p></div>'}`}
 
 /* ---------- ficha ---------- */
 const dmy=d=>{const m=String(d||'').match(/^(\d{4})-(\d\d)-(\d\d)/);return m?`${+m[3]}/${+m[2]}/${m[1]}`:''};
@@ -1112,7 +1127,7 @@ const ago=d=>{const m=Math.max(0,Math.round((Date.now()-new Date(d.replace(' ','
 function load(){
  send('/state').then(d=>{
   SHOWS.length=0;[GMAP,STATS,FRIENDS].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));[PREM,POSTS,CLUBS,POLL,DIRS,CRIT,NEWS].forEach(a=>a.length=0);REAL=true;
-  (d.news||[]).forEach((n,i)=>{NEWS.push({k:n.kind,t:n.title,x:n.body||'',id:n.title_id,w:ago(n.published_at)});if(n.event_date)PREM.push({date:n.event_date,id:n.title_id,t:n.title,p:n.platform||'',i:i})});
+  (d.news||[]).forEach((n,i)=>{NEWS.push({nid:n.id,k:n.kind,t:n.title,x:n.body||'',id:n.title_id,img:n.image||'',p:n.platform||'',date:n.event_date||'',w:ago(n.published_at)});if(n.event_date)PREM.push({date:n.event_date,id:n.title_id,t:n.title,p:n.platform||'',i:i})});
   WEEKLY=d.weekly||[];S.me=d.me||null;
   d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({avg:t.avg,votes:t.votes,id:t.id,poster:t.poster,director:t.director,writers:t.writers,release:t.release_date,age:t.age,coll:(t.collections||'').split(',').map(x=>x.trim()).filter(Boolean),saga:t.saga||'',title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
   d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status==='En pausa'?'Viendo':l.status;s.ep=l.episode;s.review=l.review||'';try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
