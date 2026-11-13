@@ -708,9 +708,9 @@ videoclub(){
  const pr={Viendo:0,Vista:1,'Quiero ver':2,Abandonada:3};
  const wall=list.slice().sort((x,y)=>(pr[x.status]??9)-(pr[y.status]??9)).slice(0,3);const wo=wall.length===3?[wall[1],wall[0],wall[2]]:wall;
  const wsz=wall.length===3?['78px','104px','78px']:['96px','96px','96px'];
- return `<h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Videoclub</h1>
+ return `<div class="top"><h1>Videoclub</h1><button class="icon-btn" data-act="styleopen" aria-label="Personalizar y decorar">${ic('brush',17)}</button></div>
  <section class="vwall" aria-label="Pared del videoclub">${wo.length?wo.map((x,i)=>`<div class="wfr" style="width:${wsz[i]}"><i class="plight"></i><button class="frame" data-act="open" data-id="${x.id}" aria-label="${x.title}">${poster(x,'tiny')}</button></div>`).join(''):`<div class="wfr" style="width:96px"><i class="plight"></i><div class="frame empty">${ic('clapper',26)}</div></div>`}</section>
- <div class="frow"><div class="row-scroll" role="group" aria-label="Filtrar por estado">${F.map(f=>`<button class="chip" aria-pressed="${S.filter===f}" data-act="filter" data-v="${f}">${f}</button>`).join('')}</div><button class="icon-btn" data-act="styleopen" aria-label="Personalizar y decorar">${ic('brush',17)}</button></div>
+ <div class="frow"><div class="row-scroll" role="group" aria-label="Filtrar por estado">${F.map(f=>`<button class="chip" aria-pressed="${S.filter===f}" data-act="filter" data-v="${f}">${f}</button>`).join('')}</div></div>
  <div style="margin-top:18px;--w1:${f.w1};--w2:${f.w2};--b1:${f.b1};--b2:${f.b2}">${rows.map(r=>`<div class="shelf ${S.vstyle==='cuadricula'?'grid3':''}"><div class="slots ${S.vstyle==='compacto'?'c4':''} ${S.vstyle==='cuadricula'?'g':''}">${r.map(cell).join('')}</div>${S.vstyle==='cuadricula'?'':'<div class="plank"></div>'}</div>`).join('')}</div>
 `},
 
