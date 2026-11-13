@@ -556,7 +556,7 @@ const POSTS=[
 const CRIT=[{n:'Carla Montes',h:'@carla.montes',v:42,f:2310},{n:'Sandra Vela',h:'@sandra.vela',v:32,f:3120},{n:'Joana Rey',h:'@joana.rey',v:30,f:1890},{n:'Paula Nieto',h:'@paula.nieto',v:29,f:2650},{n:'Eva Llorente',h:'@eva.llorente',v:28,f:1420}];
 const PLACES={
  cine:{n:'Sala de cine',sub:'Películas',d:'Qué ver en el cine: taquilla, géneros y directores',live:'312 en sala ahora',tabs:[['taquilla','Taquilla'],['pasillos','Pasillos'],['dir','Directores']]},
- casa:{n:'Salón de casa',sub:'Series',d:'Las series del momento y series por género',live:'Series en tendencia',tabs:[['sofa','Sofá'],['pasillos','Pasillos']]},
+ casa:{n:'Salón de casa',sub:'Series',d:'Series del momento, por género y para maratonear',live:'Series en tendencia',tabs:[['sofa','Sofá'],['pasillos','Pasillos'],['mara','Para maratonear']]},
  cafe:{n:'Cafetería',sub:'Comunidad',d:'Charla, sesiones para ver juntas y voces con más reseñas',live:'87 conversando',tabs:[['charla','Charla'],['ses','Sesiones'],['crit','Críticas']]}};
 const AVCOL=['#e8a56a','#8fc1f0','#e8c98f','#b8dcae','#f08fa5'];
 const esc=t=>String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
@@ -893,6 +893,18 @@ function planHTML(){const d=S.plan||{};
  <label class="fld"><span>Hora (opcional)</span><input id="f-pl-t" type="time" value="${esc(d.time||'')}"></label>
  <label class="fld"><span>Nota (opcional)</span><input id="f-pl-n" maxlength="140" placeholder="Por ejemplo: episodios 1 a 4" value="${esc(d.note||'')}"></label>
  <button class="btn block" style="margin-top:16px" data-act="plansave">Crear</button>`}
+function mara(){
+ const ser=SHOWS.filter(s=>s.type==='Serie');
+ const rel=s=>s.release||(s.year?s.year+'-01-01':'');
+ const lim=new Date(Date.now()-150*86400000).toISOString().slice(0,10);
+ const nuevas=ser.filter(s=>rel(s)>=lim).sort((a,b)=>rel(b)<rel(a)?-1:1).slice(0,6);
+ const hrs=s=>s.eps&&s.min?Math.max(1,Math.round(s.eps*s.min/60)):0;
+ const cortas=ser.filter(s=>s.eps&&s.eps<=8).sort((a,b)=>(a.eps*(a.min||45))-(b.eps*(b.min||45))).slice(0,6);
+ const row=s=>`<button class="list-item" data-act="open" data-id="${s.id}">${poster(s,'sm')}<span class="grow"><b>${s.title}</b><span class="muted small">${s.eps} episodios${hrs(s)?' · unas '+hrs(s)+' h en total':''}</span><span class="clamp">${esc(s.syn)}</span></span>${ic('chevron',18)}</button>`;
+ return `<div class="seas"><h2>Nuevas temporadas y estrenos</h2></div><p class="muted small" style="margin:-4px 0 8px">Series de los últimos meses.</p>
+ ${nuevas.length?`<div class="card" style="padding:4px 16px">${nuevas.map(row).join('')}</div>`:EMPTY('Todavía no hay series recientes en el catálogo.')}
+ <div class="sec"><h2>Se ven en un fin de semana</h2></div><p class="muted small" style="margin:-6px 0 8px">Cortas: ocho episodios o menos.</p>
+ ${cortas.length?`<div class="card" style="padding:4px 16px">${cortas.map(row).join('')}</div>`:EMPTY('Todavía no hay series cortas en el catálogo.')}`}
 function maratones(){
  if(REAL)return planList('maraton');
  if(!CLUBS.length)return EMPTY('Aún no hay maratones. Pronto podrás organizar la primera.');
@@ -927,7 +939,7 @@ function criticas(){
  ${l.map((c,i)=>{const in_=`<span class="no">${i+1}</span><span class="grow"><b>${esc(c.n)}</b><span class="muted small">${esc(c.h)}</span><span class="small" style="color:var(--soft)">${S.rev==='res'?c.v+' reseñas en 30 días':fmt(c.f)+' seguidoras'}</span></span>`;return c.u?`<button class="ticket" data-act="user" data-v="${esc(c.u)}">${in_}${ic('chevron',18)}</button>`:`<div class="ticket" style="cursor:default">${in_}</div>`}).join('')}`}
 function placeView(){
  const P=PLACES[S.place],t=S.sub[S.place];
- const body={cine:{taquilla:()=>ticketList('Película'),pasillos:()=>pasillos('Película'),dir:directoras},casa:{sofa:()=>ticketList('Serie'),pasillos:()=>pasillos('Serie')},cafe:{charla,ses:()=>REAL?planList():maratones(),crit:criticas}}[S.place][t]();
+ const body={cine:{taquilla:()=>ticketList('Película'),pasillos:()=>pasillos('Película'),dir:directoras},casa:{sofa:()=>ticketList('Serie'),pasillos:()=>pasillos('Serie'),mara},cafe:{charla,ses:()=>REAL?planList():maratones(),crit:criticas}}[S.place][t]();
  return `<div class="venue"><button class="icon-btn back" data-act="placeback" aria-label="Volver a Comunidad">${ic('back',18)}</button>${scene(S.place)}<div class="vt"><small class="muted">${P.sub}</small><h1>${P.n}</h1></div></div>
  <div class="seg" role="group" aria-label="Secciones de ${P.n}">${P.tabs.map(([k,n])=>`<button aria-pressed="${t===k}" data-act="sub" data-v="${k}">${n}</button>`).join('')}</div>${body}`}
 const REASONS=['Spam o publicidad','Acoso o insultos','Contenido inapropiado','Spoiler sin marcar','Otro motivo'];
