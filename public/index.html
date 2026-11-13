@@ -411,6 +411,7 @@ heart:'<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.6 4.3 4.3 0 0 1 19.5 1
 mug:'<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5zM16 11h1.5a2.5 2.5 0 0 1 0 5H16M8 4c-.6 1 .6 1.5 0 2.5M12 4c-.6 1 .6 1.5 0 2.5"/>',
 hourglass:'<path d="M7 3h10M7 21h10M8 3v3a4 4 0 0 0 1.6 3.2L12 12l-2.4 2.8A4 4 0 0 0 8 18v3M16 3v3a4 4 0 0 1-1.6 3.2L12 12l2.4 2.8A4 4 0 0 1 16 18v3"/>',
 search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
+more:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
 lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
 close:'<path d="M6 6l12 12M18 6L6 18"/>',
 clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
@@ -567,7 +568,7 @@ const POLL=[2,6,7], FRIENDS={Lucía:2,Marta:6,Irene:6}, AVC={Lucía:'#f4a97b',Ma
 /* ---------- estado ---------- */
 const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix','Prime Video','Filmin']),
  filter:'Todas',mood:null,coll:null,mine:true,q:'',tonight:null,night:null,sheet:null,vote:null,owned:new Set(),
- dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,decoSel:null,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,reveal:new Set(),plan:null,cpost:null,cmts:null,pspoil:false,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
+ dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,decoSel:null,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,reveal:new Set(),mod:null,blks:null,plan:null,cpost:null,cmts:null,pspoil:false,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
 let REAL=false;
 const byId=id=>SHOWS.find(s=>s.id===id);
 const dd=(k,t,v,body)=>`<div class="dd"><button class="dd-h" aria-expanded="${S.dd===k}" data-act="dd" data-v="${k}"><span><b>${t}</b><small>${v}</small></span>${ic('chevron',16)}</button>${S.dd===k?`<div class="wrap dd-b">${body}</div>`:''}</div>`;
@@ -620,7 +621,7 @@ function achievements(items,own){
  return {PERM,TEMP,seen,eps,hrs,titles};
 }
 function postCard(p,i){const sh=p.id?byId(p.id):null,lk=S.liked.has(p.k);
- return `<article class="post"><div class="ph"><span class="av2" style="background:${AVCOL[i%5]}">${esc(nameOf({display:p.n,handle:p.u})[0]||'?').toUpperCase()}</span><button class="ulink" data-act="user" data-v="${esc(p.u)}"><b>${esc(p.n||p.u)}</b><br><span class="muted small">${esc(p.h)} · ${p.t}</span></button></div>${p.sp&&!S.reveal.has(p.k)?`<button class="spo" data-act="reveal" data-v="${p.k}">${ic('lock',16)}Contiene spoilers · toca para leer</button>`:`<p style="margin:10px 0">${p.sp?'<span class="tag" style="margin-right:6px">Spoiler</span>':''}${esc(p.x)}</p>`}
+ return `<article class="post"><div class="ph"><span class="av2" style="background:${AVCOL[i%5]}">${esc(nameOf({display:p.n,handle:p.u})[0]||'?').toUpperCase()}</span><button class="ulink" data-act="user" data-v="${esc(p.u)}"><b>${esc(p.n||p.u)}</b><br><span class="muted small">${esc(p.h)} · ${p.t}</span></button><button class="icon-btn" style="margin-left:auto" data-act="modopen" data-v="post:${p.k}:${esc(p.u)}" aria-label="Más opciones">${ic('more',18)}</button></div>${p.sp&&!S.reveal.has(p.k)?`<button class="spo" data-act="reveal" data-v="${p.k}">${ic('lock',16)}Contiene spoilers · toca para leer</button>`:`<p style="margin:10px 0">${p.sp?'<span class="tag" style="margin-right:6px">Spoiler</span>':''}${esc(p.x)}</p>`}
   ${sh?`<button class="att" data-act="open" data-id="${sh.id}">${poster(sh,'sm')}<span class="grow"><span class="k">${sh.type}</span><b>${esc(sh.title)}</b><span class="muted small">${sh.year}</span></span>${ic('chevron',18)}</button>`:''}
   <div class="acts"><button class="act ${lk?'on':''}" data-act="like" data-v="${p.k}" aria-pressed="${lk}" aria-label="Me gusta">${ic('heart',18)}${p.l+(lk?1:0)}</button><button class="act" data-act="comments" data-v="${p.k}" aria-label="Comentarios">${ic('chat',18)}${p.c}</button></div></article>`}
 function profileView(){
@@ -666,6 +667,7 @@ function ajustesView(){
  ${row('passopen','key',me.has_pass?'Cambiar contraseña':'Crear contraseña',me.has_pass?'Tu cuenta está protegida':'Para entrar desde otro móvil')}
  ${row('loginopen','login','Entrar con otra cuenta','Usa tu usuario y contraseña')}</div>
  <div class="set-h">Privacidad</div><div class="card" style="padding:2px 16px"><button class="switch" role="switch" aria-checked="${!!me.is_private}" data-act="privtoggle" style="margin:14px 0"><span><b>Perfil privado</b><br><span class="muted small" style="font-weight:600">Solo te ven quienes aceptes</span></span><span class="tr"></span></button>
+ ${row('blkopen','lock','Usuarias bloqueadas','Gestiona a quién has bloqueado')}
  ${me.is_private||me.requests?row('reqopen','people','Solicitudes de seguimiento',me.requests?me.requests+' pendientes':'No tienes ninguna pendiente'):''}</div>
  <div class="set-h">Apariencia</div><div class="card" style="padding:2px 16px">
  ${row('themeopen','brush','Personalizar la app','Fondo, color, letra y tamaño')}
@@ -883,10 +885,20 @@ function placeView(){
  const body={cine:{taquilla:()=>ticketList('Película'),pasillos:()=>pasillos('Película'),dir:directoras},casa:{sofa:()=>ticketList('Serie'),pasillos:()=>pasillos('Serie'),mar:maratones,spoil:spoilers},cafe:{charla,quedadas,crit:criticas}}[S.place][t]();
  return `<div class="venue"><button class="icon-btn back" data-act="placeback" aria-label="Volver a Comunidad">${ic('back',18)}</button>${scene(S.place)}<div class="vt"><small class="muted">${P.sub}</small><h1>${P.n}</h1></div></div>
  <div class="seg" role="group" aria-label="Secciones de ${P.n}">${P.tabs.map(([k,n])=>`<button aria-pressed="${t===k}" data-act="sub" data-v="${k}">${n}</button>`).join('')}</div>${body}`}
+const REASONS=['Spam o publicidad','Acoso o insultos','Contenido inapropiado','Spoiler sin marcar','Otro motivo'];
+function modHTML(){const m=S.mod;if(!m)return '';const own=ME().handle===m.h;
+ const hd=`<div class="sheet-head"><div class="grow"><h2>${m.step==='reasons'?'¿Por qué lo denuncias?':'Más opciones'}</h2><p class="muted small" style="margin:2px 0 0">@${esc(m.h)}</p></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>`;
+ if(m.step==='reasons')return hd+`<div style="margin-top:8px">${REASONS.map(r=>`<button class="srow" data-act="modreport" data-v="${esc(r)}"><span class="grow"><b>${r}</b></span>${ic('chevron',18)}</button>`).join('')}</div>`;
+ if(own)return hd+`<button class="btn ghost block" style="margin-top:14px" data-act="moddel">Eliminar ${m.kind==='post'?'mensaje':'comentario'}</button>`;
+ return hd+`<button class="srow" data-act="modstep"><span class="grow"><b>Denunciar</b><span class="muted small">Lo revisaremos lo antes posible</span></span>${ic('chevron',18)}</button>
+ <button class="srow" data-act="modblock"><span class="grow"><b>Bloquear a @${esc(m.h)}</b><span class="muted small">No veréis nada de la otra</span></span>${ic('chevron',18)}</button>`}
+function blocksHTML(){const l=S.blks;
+ return `<div class="sheet-head"><div class="grow"><h2>Usuarias bloqueadas</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ ${l===null?'<p class="muted" style="margin-top:16px">Cargando…</p>':l.length?`<div style="margin-top:8px">${l.map(u=>`<div class="list-item" style="cursor:default">${avMini(u)}<span class="grow"><b>${esc(u.display||u.handle)}</b><span class="muted small">@${esc(u.handle)}</span></span><button class="btn ghost" data-act="unblock" data-v="${esc(u.handle)}">Desbloquear</button></div>`).join('')}</div>`:'<p class="muted" style="margin-top:16px">No has bloqueado a nadie.</p>'}`}
 function commentsHTML(){const p=S.cpost;if(!p)return '';
  const l=S.cmts;
  return `<div class="sheet-head"><div class="grow"><h2>Comentarios</h2><p class="muted small" style="margin:4px 0 0">${esc(p.n||p.u)}: ${p.sp&&!S.reveal.has(p.k)?'mensaje con spoilers':esc(p.x.slice(0,90))+(p.x.length>90?'…':'')}</p></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
- <div style="margin-top:8px">${l===null?'<p class="muted small">Cargando…</p>':l.length?l.map(c=>`<div class="cmt"><button class="ulink" data-act="user" data-v="${esc(c.handle)}"><b>${esc(c.display||c.handle)}</b> <span class="muted small">@${esc(c.handle)} · ${ago(c.created_at)}</span></button><p>${esc(c.body)}</p></div>`).join(''):'<p class="muted small">Todavía no hay comentarios. Escribe el primero.</p>'}</div>
+ <div style="margin-top:8px">${l===null?'<p class="muted small">Cargando…</p>':l.length?l.map(c=>`<div class="cmt"><button class="ulink" data-act="user" data-v="${esc(c.handle)}"><b>${esc(c.display||c.handle)}</b> <span class="muted small">@${esc(c.handle)} · ${ago(c.created_at)}</span></button><button class="icon-btn" style="float:right" data-act="modopen" data-v="comment:${c.id}:${esc(c.handle)}" aria-label="Más opciones">${ic('more',16)}</button><p>${esc(c.body)}</p></div>`).join(''):'<p class="muted small">Todavía no hay comentarios. Escribe el primero.</p>'}</div>
  <div class="cform"><input id="f-cm" maxlength="300" placeholder="Escribe un comentario" aria-label="Comentario" autocomplete="off"><button class="btn" data-act="cmsend">Enviar</button></div>`}
 function postHTML(){const d=S.pdraft;
  return `<div class="sheet-head"><div class="grow"><h2>Escribir en la charla</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
@@ -968,7 +980,7 @@ function updateTabs(){const t=$('#tabs');if(!t.dataset.ready){t.innerHTML='<i cl
  [...t.querySelectorAll('button')].forEach((b,i)=>{const on=TABS[i][0]===S.tab;if(on&&b.getAttribute('aria-current')!=='page'){b.setAttribute('aria-current','page');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');t.style.setProperty('--i',i)}else if(!on)b.removeAttribute('aria-current')})}
 function updateSheet(){
  const sh=$('#sheet'),top=sh.scrollTop,was=sh.classList.contains('on');
- if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='comments'?commentsHTML():S.sheet==='plan'?planHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
+ if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='comments'?commentsHTML():S.sheet==='plan'?planHTML():S.sheet==='mod'?modHTML():S.sheet==='blocks'?blocksHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
  if(!was&&S.sheet!==null){sh.classList.add('fresh');setTimeout(()=>sh.classList.remove('fresh'),800)}
  sh.classList.toggle('on',S.sheet!==null);$('#backdrop').classList.toggle('on',S.sheet!==null);
 }
@@ -1090,6 +1102,13 @@ document.addEventListener('click',e=>{
   case 'plansave':{const d=S.plan;if(!d.id||!d.date){toast('Elige título y día');break}send('/plans','POST',{kind:d.kind,title_id:Number(d.id),date:d.date,time:d.time,note:d.note}).then(()=>{S.sheet=null;toast('Plan creado');load()}).catch(()=>toast('No se ha podido crear'));break}
   case 'pjoin':{const p=PLANS.find(x=>x.id===Number(v));if(!p)break;p.j=!p.j;p.n+=p.j?1:-1;render();send('/plans/'+p.id+'/join','POST').catch(()=>{p.j=!p.j;p.n+=p.j?1:-1;render()});break}
   case 'pdel':{send('/plans/'+Number(v),'DELETE').then(()=>{const i=PLANS.findIndex(x=>x.id===Number(v));if(i>=0)PLANS.splice(i,1);toast('Plan cancelado');render()}).catch(()=>toast('No se ha podido cancelar'));break}
+  case 'modopen':{const [kind,k,h]=v.split(':');if(kind==='post'&&isNaN(Number(k))||!h||!/^[a-z0-9_.]{3,20}$/.test(h)){toast('Disponible en mensajes reales');break}S.mod={kind,k,h,step:''};S.sheet='mod';updateSheet();break}
+  case 'modstep':S.mod.step='reasons';updateSheet();break;
+  case 'modreport':{const m=S.mod;send('/reports','POST',{kind:m.kind,target:m.k,reason:v}).catch(()=>{});S.sheet=null;updateSheet();toast('Gracias, lo revisaremos');break}
+  case 'moddel':{const m=S.mod;send(m.kind==='post'?'/posts/'+m.k:'/comments/'+m.k,'DELETE').then(()=>{if(m.kind==='post'){const i=POSTS.findIndex(x=>String(x.k)===String(m.k));if(i>=0)POSTS.splice(i,1)}else if(S.cmts){S.cmts=S.cmts.filter(c=>String(c.id)!==String(m.k));if(S.cpost)S.cpost.c=Math.max(0,(S.cpost.c||1)-1)}toast('Eliminado');S.sheet=m.kind==='comment'&&S.cpost?'comments':null;updateSheet();render()}).catch(()=>toast('No se ha podido eliminar'));break}
+  case 'modblock':{const m=S.mod;send('/block/'+m.h,'POST').then(()=>{for(let i=POSTS.length-1;i>=0;i--)if(POSTS[i].u===m.h)POSTS.splice(i,1);if(S.cmts)S.cmts=S.cmts.filter(c=>c.handle!==m.h);S.sheet=null;updateSheet();toast('Usuaria bloqueada');render()}).catch(()=>toast('No se ha podido bloquear'));break}
+  case 'blkopen':S.blks=null;S.sheet='blocks';updateSheet();send('/blocks').then(r=>{S.blks=r.blocks||[];updateSheet()}).catch(()=>{S.blks=[];updateSheet()});break;
+  case 'unblock':send('/block/'+v,'DELETE').then(()=>{S.blks=(S.blks||[]).filter(u=>u.handle!==v);updateSheet();toast('Desbloqueada');load()}).catch(()=>toast('No se ha podido desbloquear'));break;
   case 'reveal':S.reveal.add(isNaN(Number(v))?v:Number(v));render();break;
   case 'pspoil':S.pspoil=!S.pspoil;updateSheet();break;
   case 'comments':{const k=isNaN(Number(v))?v:Number(v);const p=[...POSTS,...(typeof PROFPOSTS!=='undefined'?PROFPOSTS:[])].find(x=>x.k===k)||POSTS.find(x=>String(x.k)===String(k))||{k,u:'',n:'',x:'',c:0};if(typeof k!=='number'){toast('Los comentarios están disponibles en mensajes reales');break}S.cpost=p;S.cmts=null;S.sheet='comments';updateSheet();send('/posts/'+k+'/comments').then(r=>{S.cmts=r.comments||[];if(S.sheet==='comments'){const keep=($('#f-cm')||{}).value||'';updateSheet();if($('#f-cm'))$('#f-cm').value=keep}}).catch(()=>{S.cmts=[];updateSheet()});break}

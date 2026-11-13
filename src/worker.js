@@ -31,6 +31,8 @@ function migrate(env) {
     migrated = (async () => {
       const steps = [
         'ALTER TABLE news ADD COLUMN image TEXT',
+        'CREATE TABLE IF NOT EXISTS blocks (blocker_id TEXT NOT NULL, blocked_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), PRIMARY KEY (blocker_id, blocked_id))',
+        "CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, reporter_id TEXT NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL, reason TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
         "CREATE TABLE IF NOT EXISTS plans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, kind TEXT NOT NULL, title_id INTEGER NOT NULL, date TEXT NOT NULL, time TEXT, note TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
         'CREATE TABLE IF NOT EXISTS plan_members (plan_id INTEGER NOT NULL, user_id TEXT NOT NULL, PRIMARY KEY (plan_id, user_id))',
         'ALTER TABLE posts ADD COLUMN spoiler INTEGER NOT NULL DEFAULT 0',
@@ -95,8 +97,8 @@ async function handleApi(request, env, url) {
         (SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id) AS comments,
         (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
         (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
-       FROM posts p JOIN users u ON u.id = p.user_id ORDER BY p.id DESC LIMIT 50`
-    ).bind(uid).all();
+       FROM posts p JOIN users u ON u.id = p.user_id WHERE 1=1 AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = ?) AND p.user_id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = ?) ORDER BY p.id DESC LIMIT 50`
+    ).bind(uid, uid, uid).all();
     const weekly = await env.DB.prepare(
       `SELECT title_id, ROUND(AVG(score)) AS avg, COUNT(*) AS votes FROM (
          SELECT title_id, json_extract(ratings, '$.score') AS score FROM library
@@ -108,14 +110,14 @@ async function handleApi(request, env, url) {
          (SELECT COUNT(*) FROM follows f WHERE f.followed_id = u.id AND f.status = 'accepted') AS followers
        FROM library l JOIN users u ON u.id = l.user_id
        WHERE l.review IS NOT NULL AND l.review <> '' AND u.is_private = 0 AND l.updated_at >= datetime('now', '-30 days')
-       GROUP BY u.id ORDER BY reviews DESC LIMIT 20`
-    ).all();
+       AND u.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = ?) AND u.id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = ?) GROUP BY u.id ORDER BY reviews DESC LIMIT 20`
+    ).bind(uid, uid).all();
     const plans = await env.DB.prepare(
       `SELECT p.id, p.kind, p.title_id, p.date, p.time, p.note, u.handle, u.display,
          (SELECT COUNT(*) FROM plan_members m WHERE m.plan_id = p.id) AS members,
          (SELECT COUNT(*) FROM plan_members m WHERE m.plan_id = p.id AND m.user_id = ?) AS joined
-       FROM plans p JOIN users u ON u.id = p.user_id WHERE p.date >= date('now', '-1 day') ORDER BY p.date, p.time LIMIT 60`
-    ).bind(uid).all();
+       FROM plans p JOIN users u ON u.id = p.user_id WHERE p.date >= date('now', '-1 day') AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = ?) AND p.user_id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = ?) ORDER BY p.date, p.time LIMIT 60`
+    ).bind(uid, uid, uid).all();
     const news = await env.DB.prepare('SELECT id, kind, title, body, title_id, event_date, platform, image, published_at FROM news ORDER BY published_at DESC, id DESC LIMIT 40').all();
     const me = await meInfo(env, uid);
     return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results, news: news.results, critics: critics.results, plans: plans.results });
@@ -317,11 +319,51 @@ async function handleApi(request, env, url) {
     return json({ ok: true });
   }
 
+  if (path === '/reports' && method === 'POST') {
+    const b = await readBody(request);
+    const kind = b && ['post', 'comment', 'user'].includes(b.kind) ? b.kind : '';
+    const target = b && txt(String(b.target ?? ''), 40);
+    if (!kind || !target) return bad('denuncia no válida');
+    await env.DB.prepare('INSERT INTO reports (reporter_id, kind, target, reason) VALUES (?, ?, ?, ?)').bind(uid, kind, target, txt(b.reason, 60)).run();
+    return json({ ok: true });
+  }
+  if (path === '/blocks' && method === 'GET') {
+    const r = await env.DB.prepare('SELECT u.handle, u.display FROM blocks b JOIN users u ON u.id = b.blocked_id WHERE b.blocker_id = ? ORDER BY b.created_at DESC').bind(uid).all();
+    return json({ blocks: r.results });
+  }
+  m = path.match(/^\/block\/([a-z0-9_.]{3,20})$/);
+  if (m && (method === 'POST' || method === 'DELETE')) {
+    const t = await env.DB.prepare('SELECT id FROM users WHERE handle = ?').bind(m[1]).first();
+    if (!t || t.id === uid) return bad('usuario no encontrado', 404);
+    if (method === 'POST') {
+      await env.DB.prepare('INSERT OR IGNORE INTO blocks (blocker_id, blocked_id) VALUES (?, ?)').bind(uid, t.id).run();
+      await env.DB.prepare('DELETE FROM follows WHERE (follower_id = ?1 AND followed_id = ?2) OR (follower_id = ?2 AND followed_id = ?1)').bind(uid, t.id).run();
+    } else {
+      await env.DB.prepare('DELETE FROM blocks WHERE blocker_id = ? AND blocked_id = ?').bind(uid, t.id).run();
+    }
+    return json({ ok: true });
+  }
+  m = path.match(/^\/posts\/(\d+)$/);
+  if (m && method === 'DELETE') {
+    const id = Number(m[1]);
+    const r = await env.DB.prepare('DELETE FROM posts WHERE id = ? AND user_id = ?').bind(id, uid).run();
+    if (r.meta.changes) {
+      await env.DB.prepare('DELETE FROM post_comments WHERE post_id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM post_likes WHERE post_id = ?').bind(id).run();
+    }
+    return json({ ok: true });
+  }
+  m = path.match(/^\/comments\/(\d+)$/);
+  if (m && method === 'DELETE') {
+    await env.DB.prepare('DELETE FROM post_comments WHERE id = ? AND user_id = ?').bind(Number(m[1]), uid).run();
+    return json({ ok: true });
+  }
+
   m = path.match(/^\/posts\/(\d+)\/comments$/);
   if (m && method === 'GET') {
     const r = await env.DB.prepare(
-      `SELECT c.id, c.body, c.created_at, u.handle, u.display FROM post_comments c JOIN users u ON u.id = c.user_id WHERE c.post_id = ? ORDER BY c.id ASC LIMIT 200`
-    ).bind(Number(m[1])).all();
+      `SELECT c.id, c.body, c.created_at, u.handle, u.display FROM post_comments c JOIN users u ON u.id = c.user_id WHERE c.post_id = ? AND c.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = ?) AND c.user_id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = ?) ORDER BY c.id ASC LIMIT 200`
+    ).bind(Number(m[1]), uid, uid).all();
     return json({ comments: r.results });
   }
   if (m && method === 'POST') {

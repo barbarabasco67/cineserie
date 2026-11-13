@@ -121,3 +121,18 @@ CREATE TABLE IF NOT EXISTS plan_members (
   user_id TEXT NOT NULL,
   PRIMARY KEY (plan_id, user_id)
 );
+
+CREATE TABLE IF NOT EXISTS blocks (
+  blocker_id TEXT NOT NULL,
+  blocked_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (blocker_id, blocked_id)
+);
+CREATE TABLE IF NOT EXISTS reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  reporter_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  target TEXT NOT NULL,
+  reason TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
