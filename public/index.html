@@ -344,7 +344,7 @@ const POSTS=[
  {u:'Lucía',h:'@lucia.ve',t:'Hace 5 min',x:'No he visto casi nada sobre esta serie y me extraña, porque tiene una pinta buenísima. ¿Alguien la ha visto?',id:8,l:12,c:3},
  {u:'Marta',h:'@marta.pantalla',t:'Hace 20 min',x:'Final de temporada de «Cartas desde el faro»: necesito hablar de esa última carta. Sin spoilers, solo diré que lloré en la cocina.',id:1,l:34,c:9},
  {u:'Irene',h:'@irene.sofa',t:'Hace 1 h',x:'Plan de domingo: manta, té y «La última sesión». Aceptamos recomendaciones del mismo rollo.',id:15,l:21,c:6},
- {u:'Noelia',h:'@noe.cine',t:'Hace 3 h',x:'Opinión impopular: las comedias románticas de ahora son mejores que las de los 2000.',id:null,l:48,c:27}];
+ {u:'Noelia',h:'@noe.cine',t:'Hace 3 h',x:'Opinión impopular: las comedias románticas de ahora son mejores que las de los 2000.',id:null,l:48,c:27}].map((p,i)=>({...p,k:'d'+i}));
 const CRIT=[{n:'Carla Montes',h:'@carla.montes',v:42,f:2310},{n:'Sandra Vela',h:'@sandra.vela',v:32,f:3120},{n:'Joana Rey',h:'@joana.rey',v:30,f:1890},{n:'Paula Nieto',h:'@paula.nieto',v:29,f:2650},{n:'Eva Llorente',h:'@eva.llorente',v:28,f:1420}];
 const PLACES={
  cine:{n:'Cine',sub:'Películas',d:'Taquilla, pasillos y directoras',live:'312 en sala ahora',tabs:[['taquilla','Taquilla'],['pasillos','Pasillos'],['dir','Directoras']]},
@@ -502,9 +502,9 @@ function charla(){
  const s1=byId(1);
  return `<div class="card"><span class="tag">En el mismo capítulo</span><p style="margin:10px 0 0">Lucía, Marta e Irene también van por el episodio ${s1.ep} de «${s1.title}».</p><div class="avatars" style="margin-top:10px">${Object.keys(FRIENDS).map(n=>`<span class="av" style="background:${AVC[n]}">${n[0]}</span>`).join('')}</div></div>
  <button class="btn block" style="margin:14px 0" data-act="postopen">${ic('plus',18)}Escribir en la charla</button>
- ${POSTS.map((p,i)=>{const sh=p.id?byId(p.id):null,lk=S.liked.has(i);return `<article class="post"><div class="ph"><span class="av2" style="background:${AVCOL[i%5]}">${p.u[0]}</span><span><b>${esc(p.u)}</b><br><span class="muted small">${esc(p.h)} · ${p.t}</span></span></div><p style="margin:10px 0">${esc(p.x)}</p>
+ ${POSTS.map((p,i)=>{const sh=p.id?byId(p.id):null,lk=S.liked.has(p.k);return `<article class="post"><div class="ph"><span class="av2" style="background:${AVCOL[i%5]}">${p.u[0]}</span><span><b>${esc(p.u)}</b><br><span class="muted small">${esc(p.h)} · ${p.t}</span></span></div><p style="margin:10px 0">${esc(p.x)}</p>
   ${sh?`<button class="att" data-act="open" data-id="${sh.id}">${poster(sh,'sm')}<span class="grow"><span class="k">${sh.type}</span><b>${sh.title}</b><span class="muted small">${sh.year}</span></span>${ic('chevron',18)}</button>`:''}
-  <div class="acts"><button class="act ${lk?'on':''}" data-act="like" data-v="${i}" aria-pressed="${lk}" aria-label="Me gusta">${ic('heart',18)}${p.l+(lk?1:0)}</button><button class="act" data-act="soon2" aria-label="Comentarios">${ic('chat',18)}${p.c}</button></div></article>`}).join('')}`}
+  <div class="acts"><button class="act ${lk?'on':''}" data-act="like" data-v="${p.k}" aria-pressed="${lk}" aria-label="Me gusta">${ic('heart',18)}${p.l+(lk?1:0)}</button><button class="act" data-act="soon2" aria-label="Comentarios">${ic('chat',18)}${p.c}</button></div></article>`}).join('')}`}
 function quedadas(){
  const tot=Object.values(FRIENDS).length+(S.vote?1:0);
  const cnt=id=>Object.values(FRIENDS).filter(v=>v===id).length+(S.vote===id?1:0);
@@ -585,7 +585,7 @@ function watch(id){
  if(s.ep<s.eps)s.ep++;S.coins+=10;
  if(s.ep>=s.eps){s.status='Vista';S.coins+=50;toast(`Terminada: ${s.title}. +60 palomitas`)}else toast(`Episodio ${s.ep} visto. +10 palomitas`);
  if(!S.today){S.today=true;S.streak++}
- render();
+ syncLib(s);render();
 }
 function saveDraft(){
  const d=S.draft,t=d.title.trim();
@@ -593,6 +593,7 @@ function saveDraft(){
  if(!d.syn.trim()){toast('Escribe una sinopsis breve');return}
  const id=Math.max(...SHOWS.map(s=>s.id))+1,n=parseInt(d.n)||0,film=d.type==='Película';
  SHOWS.push({id,title:t,type:d.type,year:parseInt(d.year)||2026,eps:film?1:(n||8),min:film?(n||100):0,status:'Quiero ver',ep:0,platforms:[...d.plats],tags:[...d.tags],hue:[...t].reduce((a,c)=>a+c.charCodeAt(0),0)%360,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:d.syn.trim(),source:'user',proposed:d.propose});
+ const ns=SHOWS[SHOWS.length-1],old=ns.id;send('/titles','POST',{title:ns.title,type:ns.type,year:ns.year,episodes:ns.eps,minutes:ns.min,synopsis:ns.syn,hue:ns.hue,platforms:ns.platforms,tags:ns.tags,propose:ns.proposed}).then(r=>{if(r&&r.id){ns.id=r.id;if(S.sheet===old)S.sheet=r.id;render()}}).catch(()=>{});
  S.sheet=null;S.tab='videoclub';S.filter='Todas';S.draft=newDraft();
  toast(d.propose?'Añadida. Queda en revisión para el catálogo común':'Añadida a tu videoclub');render(true);
 }
@@ -610,12 +611,12 @@ document.addEventListener('click',e=>{
   case 'filter':S.filter=v;render();break;
   case 'open':S.sheet=id;updateSheet();break;
   case 'close':S.sheet=null;updateSheet();break;
-  case 'status':s.status=v;if(v==='Vista')s.ep=s.eps;if(v==='Quiero ver')s.ep=0;render();break;
-  case 'ep':s.ep=Math.max(0,Math.min(s.eps,s.ep+Number(v)));render();break;
-  case 'rate':{const k=a.dataset.k,n=Number(v);s.r[k]=s.r[k]===n?0:n;render();break}
+  case 'status':s.status=v;if(v==='Vista')s.ep=s.eps;if(v==='Quiero ver')s.ep=0;syncLib(s);render();break;
+  case 'ep':s.ep=Math.max(0,Math.min(s.eps,s.ep+Number(v)));syncLib(s);render();break;
+  case 'rate':{const k=a.dataset.k,n=Number(v);s.r[k]=s.r[k]===n?0:n;syncLib(s);render();break}
   case 'watch':watch(id);break;
   case 'surprise':surprise();break;
-  case 'want':s.status='Quiero ver';toast('Añadida a Quiero ver');render();break;
+  case 'want':s.status='Quiero ver';toast('Añadida a Quiero ver');syncLib(s);render();break;
   case 'mood':S.mood=S.mood===v?null:v;render();break;
   case 'mine':S.mine=!S.mine;render();break;
   case 'plat':S.platforms.has(v)?S.platforms.delete(v):S.platforms.add(v);render();break;
@@ -627,10 +628,10 @@ document.addEventListener('click',e=>{
   case 'genre':S.genre=S.genre===v?null:v;render();break;
   case 'rev':S.rev=v;render();break;
   case 'join':{const i=Number(v);if(S.joined.has(i))S.joined.delete(i);else{S.joined.add(i);toast('Te apuntamos a la maratón')}render();break}
-  case 'like':{const i=Number(v);S.liked.has(i)?S.liked.delete(i):S.liked.add(i);render();break}
+  case 'like':{const k=isNaN(Number(v))?v:Number(v);S.liked.has(k)?S.liked.delete(k):S.liked.add(k);if(typeof k==='number')send('/posts/'+k+'/like','POST').catch(()=>{});render();break}
   case 'soon2':toast('Los comentarios llegarán pronto');break;
   case 'postopen':S.pdraft={x:'',id:''};S.sheet='post';updateSheet();break;
-  case 'postsave':{const x=S.pdraft.x.trim();if(!x){toast('Escribe algo primero');break}POSTS.unshift({u:'Tú',h:'@tu_butaca',t:'Ahora',x,id:S.pdraft.id?Number(S.pdraft.id):null,l:0,c:0});S.liked=new Set([...S.liked].map(i=>i+1));S.sheet=null;toast('Publicado en la charla');render();break}
+  case 'postsave':{const x=S.pdraft.x.trim();if(!x){toast('Escribe algo primero');break}const np={k:'l'+Date.now(),u:'Tú',h:'@tu_butaca',t:'Ahora',x,id:S.pdraft.id?Number(S.pdraft.id):null,l:0,c:0};POSTS.unshift(np);send('/posts','POST',{body:x,title_id:np.id}).then(r=>{if(r&&r.id)np.k=r.id}).catch(()=>{});S.sheet=null;toast('Publicado en la charla');render();break}
   case 'goto':S.tab='descubrir';S.dtab=v;S.cday=null;S.sheet=null;render(true);break;
   case 'dtab':S.dtab=v;S.cday=null;render(true);break;
   case 'day':S.cday=S.cday===Number(v)?null:Number(v);render();break;
@@ -659,7 +660,22 @@ document.addEventListener('change',e=>{if(e.target.id==='f-pt')S.pdraft.id=e.tar
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.sheet!==null){S.sheet=null;updateSheet()}});
 function fromHash(){const h=(location.hash||'').slice(1);if(VIEWS[h]&&h!==S.tab){S.tab=h;render(true)}}
 window.addEventListener('hashchange',fromHash);
-fromHash();render(true);
+/* ---------- conexión con el servidor (si no hay, la app sigue con datos locales) ---------- */
+function uid(){try{let u=localStorage.getItem('cs_uid');if(!u){u=crypto.randomUUID();localStorage.setItem('cs_uid',u)}return u}catch(_){return uid.t||(uid.t=crypto.randomUUID())}}
+function send(path,method='GET',body){
+ if(typeof fetch!=='function')return Promise.reject(new Error('sin red'));
+ return fetch('/api'+path,{method,headers:{'content-type':'application/json','x-uid':uid()},body:body?JSON.stringify(body):undefined}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()})}
+function syncLib(s){if(s.status)send('/library/'+s.id,'PUT',{status:s.status,episode:s.ep,ratings:s.r}).catch(()=>{})}
+const ago=d=>{const m=Math.max(0,Math.round((Date.now()-new Date(d.replace(' ','T')+'Z'))/60000));return m<2?'Ahora':m<60?`Hace ${m} min`:m<1440?`Hace ${Math.round(m/60)} h`:`Hace ${Math.round(m/1440)} d`};
+function load(){
+ send('/state').then(d=>{
+  d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({id:t.id,title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:'user',proposed:t.review_status==='pending'})});
+  d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status;s.ep=l.episode;try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
+  d.posts.slice().reverse().forEach(p=>{if(POSTS.some(x=>x.k===p.id))return;const mine=p.liked>0;if(mine)S.liked.add(p.id);POSTS.unshift({k:p.id,u:p.handle,h:'@'+p.handle,t:ago(p.created_at),x:p.body,id:p.title_id,l:p.likes-(mine?1:0),c:0})});
+  render();
+ }).catch(()=>{});
+}
+fromHash();render(true);load();
 </script>
 </body>
 </html>
