@@ -68,6 +68,11 @@ svg{display:block}
 .wfr{position:relative;padding-top:20px}.plight{position:absolute;top:0;left:50%;width:52%;height:5px;margin-left:-26%;border-radius:3px;background:linear-gradient(#e8c47a,#a8803a)}
 .plight::after{content:"";position:absolute;top:5px;left:-30%;width:160%;height:56px;background:linear-gradient(rgba(255,214,150,.38),transparent);clip-path:polygon(25% 0,75% 0,100% 100%,0 100%);pointer-events:none}
 .frame{display:block;width:100%;padding:5px;border:0;border-radius:3px;cursor:pointer;background:linear-gradient(135deg,#c79a5c,#7a5530);box-shadow:0 8px 16px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.18)}.frame .poster,.frame>div{border-radius:1px}.frame.empty{display:grid;place-items:center;aspect-ratio:2/3;color:#e8c47a;background:#1a0f0a;border:5px solid #8a5a36}
+.deco{position:relative;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.deco.sel{outline:2px dashed rgba(var(--acc-rgb),.8);outline-offset:3px;border-radius:8px}
+.deco .dx{position:absolute;top:-10px;right:-10px;width:24px;height:24px;border-radius:50%;border:0;background:var(--accent);color:var(--ink);display:grid;place-items:center;cursor:pointer;touch-action:auto;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.deco.pulse{animation:dpulse .9s ease 2}@keyframes dpulse{50%{transform:scale(1.18)}}
+.dragghost{position:fixed!important;z-index:200;pointer-events:none;width:68px!important;height:68px!important;max-width:none!important;transform:translate(-50%,-65%) scale(1.15);filter:drop-shadow(0 14px 14px rgba(0,0,0,.6));outline:none!important}
+.dropmark{position:fixed;z-index:199;width:4px;border-radius:3px;background:var(--accent);box-shadow:0 0 10px var(--accent);pointer-events:none;display:none}
 .nprog{display:flex;gap:6px;margin:14px 0 4px}.nprog i{flex:1;height:4px;border-radius:9px;background:var(--line)}.nprog i.on{background:var(--accent)}
 .nopts{display:grid;gap:10px;margin-top:12px}.nopt{display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--card2);color:inherit;font:inherit;cursor:pointer;transition:transform .15s,border-color .2s}.nopt:active{transform:scale(.98)}.nopt:hover{border-color:var(--accent)}.nopt .si{color:var(--accent);display:grid}
 .chip{border:1px solid var(--line);background:transparent;padding:5px 11px;border-radius:999px;font:600 12px var(--fb);cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
@@ -515,7 +520,7 @@ const POLL=[2,6,7], FRIENDS={Lucía:2,Marta:6,Irene:6}, AVC={Lucía:'#f4a97b',Ma
 /* ---------- estado ---------- */
 const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix','Prime Video','Filmin']),
  filter:'Todas',mood:null,mine:true,q:'',tonight:null,night:null,sheet:null,vote:null,owned:new Set(),
- dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
+ dtab:'para',cday:null,bells:new Set(),newsMine:false,draft:newDraft(),deco:_dz,decoSel:null,vstyle:'estanteria',vfin:'nogal',atab:'perm',place:null,sub:{cine:'taquilla',casa:'sofa',cafe:'charla'},rank:'mes',genre:null,dd:null,kind:null,ajustes:false,profile:null,ptab:'pub',me:null,rev:'res',liked:new Set(),joined:new Set(),pdraft:{x:'',id:''}};
 let REAL=false;
 const byId=id=>SHOWS.find(s=>s.id===id);
 const dd=(k,t,v,body)=>`<div class="dd"><button class="dd-h" aria-expanded="${S.dd===k}" data-act="dd" data-v="${k}"><span><b>${t}</b><small>${v}</small></span>${ic('chevron',16)}</button>${S.dd===k?`<div class="wrap dd-b">${body}</div>`:''}</div>`;
@@ -703,7 +708,7 @@ videoclub(){
  seq.push({add:1});
  const rows=[];for(let i=0;i<seq.length;i+=per)rows.push(seq.slice(i,i+per));
  const cell=x=>x.add?`<button class="addslot" data-act="addopen" aria-label="Añadir título"><span>${ic('plus',22)}</span><b>Añadir título</b></button>`
-  :x.d?`<span class="deco" role="img" aria-label="${DECO.find(d=>d.k===x.d.k).n}">${DECO.find(d=>d.k===x.d.k).svg}</span>`
+  :x.d?`<span class="deco ${S.decoSel===x.d.i?'sel':''}" data-di="${x.d.i}" role="img" aria-label="${DECO.find(d=>d.k===x.d.k).n}">${DECO.find(d=>d.k===x.d.k).svg}${S.decoSel===x.d.i?`<button class="dx" data-act="decodel" data-v="${x.d.i}" aria-label="Quitar">${ic('close',13)}</button>`:''}</span>`
   :`<button class="pcard" data-act="open" data-id="${x.s.id}" aria-label="${x.s.title}, ${x.s.status}">${poster(x.s,'tiny')}${S.vstyle==='compacto'?'':`<span class="stub">${x.s.status}</span>`}${x.s.status==='Viendo'?`<div class="bar"><i style="width:${pct(x.s)}%"></i></div>`:''}</button>`;
  const pr={Viendo:0,Vista:1,'Quiero ver':2,Abandonada:3};
  const wall=list.slice().sort((x,y)=>(pr[x.status]??9)-(pr[y.status]??9)).slice(0,3);const wo=wall.length===3?[wall[1],wall[0],wall[2]]:wall;
@@ -864,7 +869,7 @@ function addHTML(){const d=S.draft;
 function styleHTML(){
  return `<div class="sheet-head"><div class="grow"><h2>Personalizar videoclub</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  <h3>Estilo</h3><div class="wrap">${[['estanteria','Estantería'],['cuadricula','Cuadrícula'],['compacto','Compacto']].map(([k,n])=>`<button class="chip" aria-pressed="${S.vstyle===k}" data-act="vstyle" data-v="${k}">${n}</button>`).join('')}</div>
- <h3>Decoración</h3><p class="muted small" style="margin:0 0 10px">Toca un objeto para ponerlo en tu estantería y muévelo entre tus títulos.</p><div class="decopick">${DECO.map(d=>`<button class="dpick" data-act="decoadd" data-v="${d.k}"><span class="dv">${d.svg}</span><b>${d.n}</b></button>`).join('')}</div>
+ <h3>Decoración</h3><p class="muted small" style="margin:0 0 10px">Toca un objeto para ponerlo. Luego arrástralo con el dedo hasta donde quieras en tu estantería; si lo tocas, puedes quitarlo.</p><div class="decopick">${DECO.map(d=>`<button class="dpick" data-act="decoadd" data-v="${d.k}"><span class="dv">${d.svg}</span><b>${d.n}</b></button>`).join('')}</div>
  ${S.deco.length?`<h3>En tu estantería</h3><div class="dlist">${S.deco.map((o,i)=>`<div class="drow"><span class="dv">${DECO.find(d=>d.k===o.k).svg}</span><b class="grow">${DECO.find(d=>d.k===o.k).n}</b><button class="icon-btn" data-act="decomove" data-v="${i}" data-d="-1" aria-label="Mover a la izquierda">${ic('back',16)}</button><button class="icon-btn" data-act="decomove" data-v="${i}" data-d="1" aria-label="Mover a la derecha" style="transform:scaleX(-1)">${ic('back',16)}</button><button class="icon-btn" data-act="decodel" data-v="${i}" aria-label="Quitar">${ic('close',16)}</button></div>`).join('')}</div>`:''}
  <h3>Acabado</h3><div class="fins">${Object.entries(FIN).map(([k,f])=>`<button class="fin" aria-pressed="${S.vfin===k}" data-act="vfin" data-v="${k}"><span class="sw" style="background:linear-gradient(${f.b1},${f.w1})"></span><span>${f.n}</span>${f.prem?`<span class="prem">${ic('lock',12)}Premium</span>`:''}</button>`).join('')}</div>`}
 
@@ -943,6 +948,18 @@ function nightHTML(){const N=S.night;if(!N)return '';
   <p class="clamp" style="margin-top:12px">${esc(x.syn)}</p>
   <div class="wrap" style="margin-top:16px"><button class="btn" data-act="nwant" data-id="${x.id}">${ic('plus',18)}Quiero verla</button>${N.res.length>1?`<button class="btn ghost" data-act="nnext">${ic('shuffle',16)}Otra opción</button>`:''}<button class="btn ghost" data-act="night">Repetir</button></div>`}
 
+
+/* arrastrar decoración */
+(()=>{let dg=null,gh=null,mk=null;
+ const tgt=(x,y)=>{const cs=[...document.querySelectorAll('.slots .pcard')];if(!cs.length)return{at:0,r:null};let best=null,bd=1e9;cs.forEach((c,j)=>{const r=c.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,d=Math.hypot((x-cx)*.6,(y-cy)*1.4);if(d<bd){bd=d;best={j,r,left:x<cx}}});return best.left?{at:best.j,r:best.r,side:'l'}:{at:best.j+1,r:best.r,side:'r'}};
+ const clean=()=>{gh&&gh.remove();mk&&mk.remove();gh=mk=null};
+ document.addEventListener('pointerdown',e=>{const el=e.target.closest('.deco[data-di]');if(!el||e.target.closest('.dx'))return;dg={el,i:Number(el.dataset.di),x0:e.clientX,y0:e.clientY,moved:false};try{el.setPointerCapture(e.pointerId)}catch(_){}});
+ document.addEventListener('pointermove',e=>{if(!dg)return;if(!dg.moved&&Math.hypot(e.clientX-dg.x0,e.clientY-dg.y0)>7){dg.moved=true;gh=dg.el.cloneNode(true);gh.className='deco dragghost';gh.removeAttribute('data-di');const dx=gh.querySelector('.dx');dx&&dx.remove();document.body.appendChild(gh);mk=document.createElement('i');mk.className='dropmark';document.body.appendChild(mk);dg.el.style.opacity='.25'}
+  if(dg.moved){gh.style.left=e.clientX+'px';gh.style.top=e.clientY+'px';const t=tgt(e.clientX,e.clientY);if(t.r){mk.style.display='block';mk.style.left=(t.side==='l'?t.r.left-8:t.r.right+4)+'px';mk.style.top=t.r.top+'px';mk.style.height=t.r.height+'px'}else mk.style.display='none';dg.t=t}});
+ const end=e=>{if(!dg)return;const d=dg;dg=null;clean();if(d.moved){const t=d.t||tgt(e.clientX,e.clientY);S.deco[d.i].at=t.at;S.decoSel=d.i;saveDeco();render()}else{S.decoSel=S.decoSel===d.i?null:d.i;render()}};
+ document.addEventListener('pointerup',end);document.addEventListener('pointercancel',()=>{dg=null;clean();render()});
+})();
+
 document.addEventListener('click',e=>{
  const a=e.target.closest('[data-act]');if(!a)return;
  const v=a.dataset.v,id=Number(a.dataset.id),s=id?byId(id):null;
@@ -1012,9 +1029,9 @@ document.addEventListener('click',e=>{
   case 'th':{const k=a.dataset.k;TH[k]=k==='zoom'?Number(v):k==='calm'?v==='true':v;saveTheme();applyTheme();updateSheet();break}
   case 'threset':TH={...TH0};saveTheme();applyTheme();updateSheet();break;
   case 'styleopen':S.sheet='style';updateSheet();break;
-  case 'decoadd':{if(S.deco.length>=10){toast('Máximo 10 objetos');break}const n=SHOWS.filter(x=>x.status).length;S.deco.push({k:v,at:Math.min(1,n)});saveDeco();render();updateSheet();break}
+  case 'decoadd':{if(S.deco.length>=10){toast('Máximo 10 objetos');break}const n=SHOWS.filter(x=>x.status).length;S.deco.push({k:v,at:0});S.decoSel=S.deco.length-1;saveDeco();S.sheet=null;updateSheet();render();toast('Colocado arriba a la izquierda. Arrástralo donde quieras');setTimeout(()=>{const e=document.querySelector('.deco.sel');if(e){e.scrollIntoView({block:'center',behavior:'smooth'});e.classList.add('pulse')}},60);break}
   case 'decomove':{const o=S.deco[Number(v)];if(!o)break;const n=SHOWS.filter(x=>x.status).length;o.at=Math.max(0,Math.min(n,o.at+Number(a.dataset.d)));saveDeco();render();updateSheet();break}
-  case 'decodel':S.deco.splice(Number(v),1);saveDeco();render();updateSheet();break
+  case 'decodel':S.deco.splice(Number(v),1);S.decoSel=null;saveDeco();render();updateSheet();toast('Objeto quitado');break
   case 'vstyle':S.vstyle=v;render();break;
   case 'vfin':if(FIN[v].prem){toast('Es un acabado Premium');break}S.vfin=v;render();break;
   case 'atab':S.atab=v;render();break;
