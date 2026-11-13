@@ -296,7 +296,7 @@ html.calm *,html.calm *::before,html.calm *::after{animation:none!important;tran
 .pf-name{font:700 24px var(--ft);margin:10px 0 0}
 .pf-bio{margin:8px 0 0;font-size:14px;line-height:1.4}
 .pf-stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;border-top:1px solid var(--line);padding-top:12px;text-align:center}
-.pf-stats b{display:block;font:700 19px var(--ft)}.pf-stats span{font-size:12px;color:var(--muted)}
+.pf-stats>button{background:none;border:0;color:inherit;font:inherit;cursor:pointer;padding:0}.pf-stats>button:disabled{cursor:default;opacity:.6}.lock{display:inline-flex;vertical-align:middle;margin-left:8px;color:var(--accent)}.reqb{margin:12px 0}.pf-stats b{display:block;font:700 19px var(--ft)}.pf-stats span{font-size:12px;color:var(--muted)}
 .pf-strip{padding:0 16px 16px;margin-top:0}.pf-strip .sn{display:block;font:600 11px/1.2 var(--fb);color:var(--muted);margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pf-mini{width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--ink);display:grid;place-items:center;font:700 16px var(--ft);flex:none}
 .ulink{background:none;border:0;padding:0;text-align:left;cursor:pointer;color:inherit;font:inherit}
@@ -527,10 +527,10 @@ function postCard(p,i){const sh=p.id?byId(p.id):null,lk=S.liked.has(p.k);
   <div class="acts"><button class="act ${lk?'on':''}" data-act="like" data-v="${p.k}" aria-pressed="${lk}" aria-label="Me gusta">${ic('heart',18)}${p.l+(lk?1:0)}</button><button class="act" data-act="soon2" aria-label="Comentarios">${ic('chat',18)}${p.c}</button></div></article>`}
 function profileView(){
  const me=ME(),viewing=S.profile&&S.profile!==me.handle?S.profile:null;
- let U=me,items,posts,isMe=true,isF=false,flw=me.followers,fng=me.following;
+ let U=me,items,posts,isMe=true,isF=false,pend=false,vis=true,flw=me.followers,fng=me.following;
  if(viewing){const d=PROF[viewing];
   if(!d)return `<div class="pf-nav"><button class="icon-btn" data-act="pback" aria-label="Volver">${ic('back',18)}</button></div><div class="card muted" style="margin-top:56px">Cargando perfil…</div>`;
-  U=d.user;items=itemsFrom(d.library);isMe=false;isF=d.is_following;flw=d.followers;fng=d.following;
+  U=d.user;items=itemsFrom(d.library);isMe=false;isF=d.status==='accepted';pend=d.status==='pending';vis=d.visible!==false;flw=d.followers;fng=d.following;
   posts=d.posts.map(p=>({k:p.id,u:U.handle,n:U.display,h:'@'+U.handle,t:ago(p.created_at),x:p.body,id:p.title_id,l:p.likes-(p.liked>0?1:0),c:0}));
  }else{items=ownItems();posts=POSTS.filter(p=>p.u===me.handle)}
  const A=achievements(items,isMe);
@@ -540,11 +540,13 @@ function profileView(){
  const ini=(nameOf(U)[0]||'?').toUpperCase();
  const head=`<div class="pf-head"><div class="pf-banner"></div>
   <div class="pf-nav">${isMe?'<span></span>':`<button class="icon-btn" data-act="pback" aria-label="Volver">${ic('back',18)}</button>`}${isMe?`<button class="icon-btn" data-act="ajustes" aria-label="Ajustes">${ic('sliders',18)}</button>`:'<span></span>'}</div>
-  <div class="pf-body"><div class="pf-top"><span class="pf-ava">${esc(ini)}</span>${isMe?`<button class="btn ghost" data-act="useropen">${ic('brush',15)}Editar perfil</button>`:`<button class="btn ${isF?'ghost':''}" data-act="follow" data-v="${esc(U.handle)}">${isF?ic('check',15)+'Siguiendo':ic('plus',15)+'Seguir'}</button>`}</div>
-  <h1 class="pf-name">${esc(nameOf(U))}</h1><div class="muted small">@${esc(U.handle)}</div>${U.bio?`<p class="pf-bio">${esc(U.bio)}</p>`:(isMe?`<p class="pf-bio muted">Añade una frase sobre ti en «Editar perfil».</p>`:'')}
-  <div class="pf-stats"><div><b>${revs.length}</b><span>Reseñas</span></div><div><b>${flw}</b><span>Seguidores</span></div><div><b>${fng}</b><span>Siguiendo</span></div></div></div>
-  <div class="strip pf-strip">${slot('Última',last)}${slot('Ahora',cur)}${slot('Próxima',nxt)}</div></div>`;
- const tabs=`<div class="seg" role="group" aria-label="Secciones del perfil" style="grid-template-columns:repeat(3,1fr)">${[['pub','Publicaciones'],['rev','Reseñas'],['logros','Logros']].map(([k,n])=>`<button aria-pressed="${S.ptab===k}" data-act="ptab" data-v="${k}">${n}</button>`).join('')}</div>`;
+  <div class="pf-body"><div class="pf-top"><span class="pf-ava">${esc(ini)}</span>${isMe?`<button class="btn ghost" data-act="useropen">${ic('brush',15)}Editar perfil</button>`:`<button class="btn ${isF||pend?'ghost':''}" data-act="follow" data-v="${esc(U.handle)}">${isF?ic('check',15)+'Siguiendo':pend?ic('clock',15)+'Pendiente':ic('plus',15)+(PROF[U.handle]&&PROF[U.handle].is_private?'Solicitar':'Seguir')}</button>`}</div>
+  <h1 class="pf-name">${esc(nameOf(U))}${(isMe?me.is_private:PROF[U.handle]&&PROF[U.handle].is_private)?`<span class="lock" title="Perfil privado">${ic('lock',16)}</span>`:''}</h1><div class="muted small">@${esc(U.handle)}${!isMe&&PROF[U.handle]&&PROF[U.handle].follows_me?' <span class="tag">Te sigue</span>':''}</div>${U.bio?`<p class="pf-bio">${esc(U.bio)}</p>`:(isMe?`<p class="pf-bio muted">Añade una frase sobre ti en «Editar perfil».</p>`:'')}
+  <div class="pf-stats"><div><b>${vis?revs.length:'–'}</b><span>Reseñas</span></div><button data-act="flist" data-v="followers" data-h="${esc(U.handle)}" ${vis?'':'disabled'}><b>${flw}</b><span>Seguidores</span></button><button data-act="flist" data-v="following" data-h="${esc(U.handle)}" ${vis?'':'disabled'}><b>${fng}</b><span>Siguiendo</span></button></div></div>
+  ${vis?`<div class="strip pf-strip">${slot('Última',last)}${slot('Ahora',cur)}${slot('Próxima',nxt)}</div>`:''}</div>`;
+ if(!vis)return head+`<div class="card" style="text-align:center;padding:26px 18px"><span style="color:var(--accent)">${ic('lock',30)}</span><h2 style="margin:10px 0 6px">Este perfil es privado</h2><p class="muted small" style="margin:0">${pend?'Tu solicitud está pendiente. Cuando la acepte, podrás ver sus publicaciones y reseñas.':'Solicita seguirle para ver sus publicaciones y reseñas.'}</p></div>`;
+ const reqb=isMe&&me.requests>0?`<button class="place reqb" data-act="reqopen"><span class="si">${ic('people',18)}</span><span class="grow"><b>${me.requests} ${me.requests>1?'solicitudes':'solicitud'} de seguimiento</b><span class="muted small">Toca para aceptarlas o rechazarlas</span></span>${ic('chevron',18)}</button>`:'';
+ const tabs=reqb+`<div class="seg" role="group" aria-label="Secciones del perfil" style="grid-template-columns:repeat(3,1fr)">${[['pub','Publicaciones'],['rev','Reseñas'],['logros','Logros']].map(([k,n])=>`<button aria-pressed="${S.ptab===k}" data-act="ptab" data-v="${k}">${n}</button>`).join('')}</div>`;
  let body='';
  if(S.ptab==='pub'){
   body=posts.length?posts.map(postCard).join(''):`<div class="card muted">${isMe?'Aún no has compartido nada. Escribe en la charla de la Cafetería y aparecerá aquí.':'Todavía no ha compartido nada.'}</div>`;
@@ -565,12 +567,21 @@ function ajustesView(){
  ${row('useropen','user','Perfil público','Nombre, usuario y presentación')}
  ${row('passopen','key',me.has_pass?'Cambiar contraseña':'Crear contraseña',me.has_pass?'Tu cuenta está protegida':'Para entrar desde otro móvil')}
  ${row('loginopen','login','Entrar con otra cuenta','Usa tu usuario y contraseña')}</div>
+ <div class="set-h">Privacidad</div><div class="card" style="padding:2px 16px"><button class="switch" role="switch" aria-checked="${!!me.is_private}" data-act="privtoggle" style="margin:14px 0"><span><b>Perfil privado</b><br><span class="muted small" style="font-weight:600">Solo te ven quienes aceptes</span></span><span class="tr"></span></button>
+ ${me.is_private||me.requests?row('reqopen','people','Solicitudes de seguimiento',me.requests?me.requests+' pendientes':'No tienes ninguna pendiente'):''}</div>
  <div class="set-h">Apariencia</div><div class="card" style="padding:2px 16px">
  ${row('themeopen','brush','Personalizar la app','Fondo, color, letra y tamaño')}
  ${row('styleopen','clapper','Estantería del videoclub','Estilo y acabado')}</div>
  <div class="set-h">Información</div><div class="card" style="padding:2px 16px">
  <div class="srow" style="cursor:default"><span class="si">${ic('info',18)}</span><span class="grow"><b>Versión</b></span><span class="muted small">0.9 beta</span></div></div>
- <p class="foot">Tu perfil es público: otras personas pueden ver lo que compartes, tus reseñas y lo que estás viendo.</p>`}
+ <p class="foot">${me.is_private?'Tu perfil es privado: solo lo ven quienes te siguen. Lo que escribes en la charla de la Cafetería sigue siendo visible para todas.':'Tu perfil es público: cualquiera puede ver lo que compartes, tus reseñas y lo que estás viendo.'}</p>`}
+const avMini=u=>`<span class="pf-mini">${esc((nameOf(u)[0]||'?').toUpperCase())}</span>`;
+function flistHTML(){const f=S.flist||{};
+ return `<div class="sheet-head"><div class="grow"><h2>${f.kind==='followers'?'Seguidores':'Siguiendo'}</h2><p class="muted small" style="margin:2px 0 0">@${esc(f.h||'')}</p></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ ${f.users===null?'<p class="muted" style="margin-top:16px">Cargando…</p>':f.users.length?`<div style="margin-top:8px">${f.users.map(u=>`<div class="list-item" style="cursor:default">${avMini(u)}<button class="ulink grow" data-act="user" data-v="${esc(u.handle)}"><b>${esc(nameOf(u))}</b><span class="muted small">@${esc(u.handle)}</span></button>${u.me?'':`<button class="btn ${u.rel?'ghost':''}" data-act="follow" data-v="${esc(u.handle)}">${u.rel==='accepted'?'Siguiendo':u.rel==='pending'?'Pendiente':'Seguir'}</button>`}</div>`).join('')}</div>`:'<p class="muted" style="margin-top:16px">Todavía no hay nadie aquí.</p>'}`}
+function reqsHTML(){const r=S.reqs;
+ return `<div class="sheet-head"><div class="grow"><h2>Solicitudes de seguimiento</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ ${r===null||r===undefined?'<p class="muted" style="margin-top:16px">Cargando…</p>':r.length?`<div style="margin-top:8px">${r.map(u=>`<div class="list-item" style="cursor:default">${avMini(u)}<span class="grow"><b>${esc(nameOf(u))}</b><span class="muted small">@${esc(u.handle)}</span></span><button class="btn" data-act="reqok" data-v="${esc(u.handle)}">Aceptar</button><button class="btn ghost" data-act="reqno" data-v="${esc(u.handle)}">Rechazar</button></div>`).join('')}</div>`:'<p class="muted" style="margin-top:16px">No tienes solicitudes pendientes.</p>'}`}
 function userHTML(){const me=ME();
  return `<div class="sheet-head"><div class="grow"><h2>Perfil público</h2></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
  <label class="fld"><span>Nombre que se ve</span><input id="u-name" value="${esc(me.display||'')}" maxlength="30" autocomplete="off"></label>
@@ -800,7 +811,7 @@ function updateTabs(){const t=$('#tabs');if(!t.dataset.ready){t.innerHTML='<i cl
  [...t.querySelectorAll('button')].forEach((b,i)=>{const on=TABS[i][0]===S.tab;if(on&&b.getAttribute('aria-current')!=='page'){b.setAttribute('aria-current','page');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');t.style.setProperty('--i',i)}else if(!on)b.removeAttribute('aria-current')})}
 function updateSheet(){
  const sh=$('#sheet'),top=sh.scrollTop,was=sh.classList.contains('on');
- if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
+ if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
  if(!was&&S.sheet!==null){sh.classList.add('fresh');setTimeout(()=>sh.classList.remove('fresh'),800)}
  sh.classList.toggle('on',S.sheet!==null);$('#backdrop').classList.toggle('on',S.sheet!==null);
 }
@@ -877,7 +888,11 @@ document.addEventListener('click',e=>{
   case 'ptab':S.ptab=v;render();break;
   case 'pback':S.profile=null;render(true);break;
   case 'user':{if(!/^[a-z0-9_.]{3,20}$/.test(v)){toast('Este perfil no está disponible');break}S.sheet=null;S.tab='perfil';S.ajustes=false;S.place=null;S.profile=v===ME().handle?null:v;if(S.profile)send('/profile/'+v).then(d=>{PROF[v]=d;render()}).catch(()=>{toast('No se ha podido abrir el perfil');S.profile=null;render(true)});try{location.hash='perfil'}catch(_){}render(true);break}
-  case 'follow':{const d=PROF[v],was=d?d.is_following:false;send('/follow/'+v,was?'DELETE':'POST').then(r=>{if(d){d.is_following=r.following;d.followers=r.followers}if(S.me)S.me.following+=r.following?1:-1;PEOPLE=PEOPLE.filter(u=>u.handle!==v);render()}).catch(()=>toast('Inténtalo otra vez'));break}
+  case 'follow':{const d=PROF[v],fl=S.flist&&S.flist.users?S.flist.users.find(u=>u.handle===v):null,was=d?d.status:(fl?fl.rel:null);send('/follow/'+v,was?'DELETE':'POST').then(r=>{if(d){d.status=r.status;d.followers=r.followers}if(fl)fl.rel=r.status;if(S.me){if(was==='accepted')S.me.following--;if(r.status==='accepted')S.me.following++}PEOPLE=PEOPLE.filter(u=>u.handle!==v);render()}).catch(()=>toast('Inténtalo otra vez'));break}
+  case 'flist':{const h=a.dataset.h;S.flist={h,kind:v,users:null};S.sheet='flist';updateSheet();send('/profile/'+h+'/'+v).then(r=>{S.flist.users=r.users;updateSheet()}).catch(()=>{S.flist.users=[];updateSheet()});break}
+  case 'reqopen':S.reqs=null;S.sheet='reqs';updateSheet();send('/requests').then(r=>{S.reqs=r.requests;updateSheet()}).catch(()=>{S.reqs=[];updateSheet()});break
+  case 'reqok':case 'reqno':send('/requests/'+v,a.dataset.act==='reqok'?'POST':'DELETE').then(r=>{S.me={...S.me,...r};S.reqs=(S.reqs||[]).filter(u=>u.handle!==v);toast(a.dataset.act==='reqok'?'Solicitud aceptada':'Solicitud rechazada');render()}).catch(()=>toast('Inténtalo otra vez'));break
+  case 'privtoggle':send('/privacy','PUT',{private:!ME().is_private}).then(r=>{S.me={...S.me,...r};toast(r.is_private?'Tu perfil ahora es privado':'Tu perfil ahora es público');render()}).catch(()=>toast('Inténtalo otra vez'));break
   case 'useropen':S.sheet='user';updateSheet();break;
   case 'passopen':S.sheet='pass';updateSheet();break;
   case 'loginopen':S.sheet='login';updateSheet();break;

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   bio TEXT,
   pass_hash TEXT,
   pass_salt TEXT,
+  is_private INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -79,6 +80,7 @@ CREATE TABLE IF NOT EXISTS reminders (
 CREATE TABLE IF NOT EXISTS follows (
   follower_id TEXT NOT NULL REFERENCES users(id),
   followed_id TEXT NOT NULL REFERENCES users(id),
+  status TEXT NOT NULL DEFAULT 'accepted',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (follower_id, followed_id)
 );

@@ -35,8 +35,11 @@ function migrate(env) {
         'ALTER TABLE users ADD COLUMN pass_hash TEXT',
         'ALTER TABLE users ADD COLUMN pass_salt TEXT',
         'ALTER TABLE library ADD COLUMN review TEXT',
+        'ALTER TABLE users ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0',
+        "ALTER TABLE follows ADD COLUMN status TEXT NOT NULL DEFAULT 'accepted'",
         'CREATE TABLE IF NOT EXISTS follows (follower_id TEXT NOT NULL REFERENCES users(id), followed_id TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT (datetime(\'now\')), PRIMARY KEY (follower_id, followed_id))',
       ];
+      steps.sort((a, b) => (a.startsWith('CREATE') ? 0 : 1) - (b.startsWith('CREATE') ? 0 : 1));
       for (const s of steps) { try { await env.DB.prepare(s).run(); } catch { /* ya existe */ } }
     })();
   }
@@ -44,9 +47,13 @@ function migrate(env) {
 }
 const HANDLE = /^[a-z0-9_.]{3,20}$/;
 async function meInfo(env, uid) {
-  const u = await env.DB.prepare('SELECT id, handle, display, bio, pass_hash FROM users WHERE id = ?').bind(uid).first();
-  const f = await env.DB.prepare('SELECT (SELECT COUNT(*) FROM follows WHERE followed_id = ?1) AS followers, (SELECT COUNT(*) FROM follows WHERE follower_id = ?1) AS following').bind(uid).first();
-  return { handle: u.handle, display: u.display || '', bio: u.bio || '', has_pass: !!u.pass_hash, followers: f.followers, following: f.following };
+  const u = await env.DB.prepare('SELECT id, handle, display, bio, pass_hash, is_private FROM users WHERE id = ?').bind(uid).first();
+  const f = await env.DB.prepare(
+    `SELECT (SELECT COUNT(*) FROM follows WHERE followed_id = ?1 AND status = 'accepted') AS followers,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = ?1 AND status = 'accepted') AS following,
+            (SELECT COUNT(*) FROM follows WHERE followed_id = ?1 AND status = 'pending') AS requests`
+  ).bind(uid).first();
+  return { handle: u.handle, display: u.display || '', bio: u.bio || '', has_pass: !!u.pass_hash, is_private: !!u.is_private, followers: f.followers, following: f.following, requests: f.requests };
 }
 
 async function readBody(request) {
@@ -145,35 +152,79 @@ async function handleApi(request, env, url) {
     return json({ ok: true });
   }
 
-  m = path.match(/^\/profile\/([a-z0-9_.]{3,20})$/);
+  m = path.match(/^\/profile\/([a-z0-9_.]{3,20})(?:\/(followers|following))?$/);
   if (m && method === 'GET') {
-    const u = await env.DB.prepare('SELECT id, handle, display, bio, created_at FROM users WHERE handle = ?').bind(m[1]).first();
+    const u = await env.DB.prepare('SELECT id, handle, display, bio, created_at, is_private FROM users WHERE handle = ?').bind(m[1]).first();
     if (!u) return bad('Perfil no encontrado', 404);
-    const f = await env.DB.prepare('SELECT (SELECT COUNT(*) FROM follows WHERE followed_id = ?1) AS followers, (SELECT COUNT(*) FROM follows WHERE follower_id = ?1) AS following, (SELECT COUNT(*) FROM follows WHERE follower_id = ?2 AND followed_id = ?1) AS is_following').bind(u.id, uid).first();
-    const lib = await env.DB.prepare('SELECT title_id, status, episode, ratings, review, updated_at FROM library WHERE user_id = ? ORDER BY updated_at DESC LIMIT 200').bind(u.id).all();
-    const posts = await env.DB.prepare(
-      `SELECT p.id, p.body, p.title_id, p.created_at,
-        (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
-        (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
-       FROM posts p WHERE p.user_id = ? ORDER BY p.id DESC LIMIT 30`
-    ).bind(uid, u.id).all();
-    return json({ user: { handle: u.handle, display: u.display || '', bio: u.bio || '', joined: u.created_at }, followers: f.followers, following: f.following, is_following: f.is_following > 0, is_me: u.id === uid, library: lib.results, posts: posts.results });
+    const rel = await env.DB.prepare('SELECT status FROM follows WHERE follower_id = ? AND followed_id = ?').bind(uid, u.id).first();
+    const isMe = u.id === uid;
+    const visible = isMe || !u.is_private || (rel && rel.status === 'accepted');
+    if (m[2]) {
+      if (!visible) return bad('Perfil privado', 403);
+      const col = m[2] === 'followers' ? ['follower_id', 'followed_id'] : ['followed_id', 'follower_id'];
+      const r = await env.DB.prepare(
+        `SELECT p.handle, p.display, (p.id = ?1) AS me, (SELECT status FROM follows x WHERE x.follower_id = ?1 AND x.followed_id = p.id) AS rel
+         FROM follows f JOIN users p ON p.id = f.${col[0]} WHERE f.${col[1]} = ?2 AND f.status = 'accepted' ORDER BY f.created_at DESC LIMIT 100`
+      ).bind(uid, u.id).all();
+      return json({ users: r.results.map((x) => ({ handle: x.handle, display: x.display || '', me: !!x.me, rel: x.rel || null })) });
+    }
+    const f = await env.DB.prepare(
+      `SELECT (SELECT COUNT(*) FROM follows WHERE followed_id = ?1 AND status = 'accepted') AS followers,
+              (SELECT COUNT(*) FROM follows WHERE follower_id = ?1 AND status = 'accepted') AS following,
+              (SELECT COUNT(*) FROM follows WHERE follower_id = ?1 AND followed_id = ?2 AND status = 'accepted') AS follows_me`
+    ).bind(u.id, uid).first();
+    const out = { user: { handle: u.handle, display: u.display || '', bio: u.bio || '', joined: u.created_at }, followers: f.followers, following: f.following, is_me: isMe, is_private: !!u.is_private, visible: !!visible, status: rel ? rel.status : null, follows_me: f.follows_me > 0, library: [], posts: [] };
+    if (visible) {
+      const lib = await env.DB.prepare('SELECT title_id, status, episode, ratings, review, updated_at FROM library WHERE user_id = ? ORDER BY updated_at DESC LIMIT 200').bind(u.id).all();
+      const posts = await env.DB.prepare(
+        `SELECT p.id, p.body, p.title_id, p.created_at,
+          (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
+          (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked
+         FROM posts p WHERE p.user_id = ? ORDER BY p.id DESC LIMIT 30`
+      ).bind(uid, u.id).all();
+      out.library = lib.results; out.posts = posts.results;
+    }
+    return json(out);
   }
 
   m = path.match(/^\/follow\/([a-z0-9_.]{3,20})$/);
   if (m && (method === 'POST' || method === 'DELETE')) {
-    const u = await env.DB.prepare('SELECT id FROM users WHERE handle = ?').bind(m[1]).first();
+    const u = await env.DB.prepare('SELECT id, is_private FROM users WHERE handle = ?').bind(m[1]).first();
     if (!u) return bad('Perfil no encontrado', 404);
     if (u.id === uid) return bad('No puedes seguirte a ti misma');
-    if (method === 'POST') await env.DB.prepare('INSERT OR IGNORE INTO follows (follower_id, followed_id) VALUES (?, ?)').bind(uid, u.id).run();
-    else await env.DB.prepare('DELETE FROM follows WHERE follower_id = ? AND followed_id = ?').bind(uid, u.id).run();
-    const c = await env.DB.prepare('SELECT COUNT(*) AS n FROM follows WHERE followed_id = ?').bind(u.id).first();
-    return json({ following: method === 'POST', followers: c.n });
+    let status = null;
+    if (method === 'POST') {
+      await env.DB.prepare('INSERT OR IGNORE INTO follows (follower_id, followed_id, status) VALUES (?, ?, ?)').bind(uid, u.id, u.is_private ? 'pending' : 'accepted').run();
+      const cur = await env.DB.prepare('SELECT status FROM follows WHERE follower_id = ? AND followed_id = ?').bind(uid, u.id).first();
+      status = cur.status;
+    } else await env.DB.prepare('DELETE FROM follows WHERE follower_id = ? AND followed_id = ?').bind(uid, u.id).run();
+    const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM follows WHERE followed_id = ? AND status = 'accepted'").bind(u.id).first();
+    return json({ status, followers: c.n });
+  }
+
+  if (path === '/privacy' && method === 'PUT') {
+    const b = await readBody(request);
+    await env.DB.prepare('UPDATE users SET is_private = ? WHERE id = ?').bind(b && b.private ? 1 : 0, uid).run();
+    return json(await meInfo(env, uid));
+  }
+
+  if (path === '/requests' && method === 'GET') {
+    const r = await env.DB.prepare("SELECT u.handle, u.display FROM follows f JOIN users u ON u.id = f.follower_id WHERE f.followed_id = ? AND f.status = 'pending' ORDER BY f.created_at DESC LIMIT 50").bind(uid).all();
+    return json({ requests: r.results.map((x) => ({ handle: x.handle, display: x.display || '' })) });
+  }
+
+  m = path.match(/^\/requests\/([a-z0-9_.]{3,20})$/);
+  if (m && (method === 'POST' || method === 'DELETE')) {
+    const u = await env.DB.prepare('SELECT id FROM users WHERE handle = ?').bind(m[1]).first();
+    if (!u) return bad('Perfil no encontrado', 404);
+    if (method === 'POST') await env.DB.prepare("UPDATE follows SET status = 'accepted' WHERE follower_id = ? AND followed_id = ? AND status = 'pending'").bind(u.id, uid).run();
+    else await env.DB.prepare("DELETE FROM follows WHERE follower_id = ? AND followed_id = ? AND status = 'pending'").bind(u.id, uid).run();
+    return json(await meInfo(env, uid));
   }
 
   if (path === '/people' && method === 'GET') {
     const r = await env.DB.prepare(
-      `SELECT u.handle, u.display, (SELECT COUNT(*) FROM follows f WHERE f.followed_id = u.id) AS followers
+      `SELECT u.handle, u.display, (SELECT COUNT(*) FROM follows f WHERE f.followed_id = u.id AND f.status = 'accepted') AS followers
        FROM users u WHERE u.id != ?1 AND NOT EXISTS (SELECT 1 FROM follows f WHERE f.follower_id = ?1 AND f.followed_id = u.id)
          AND EXISTS (SELECT 1 FROM library l WHERE l.user_id = u.id)
        ORDER BY followers DESC, u.created_at DESC LIMIT 10`
