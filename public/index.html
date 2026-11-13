@@ -351,6 +351,18 @@ html.calm *,html.calm *::before,html.calm *::after{animation:none!important;tran
 .card .srow:last-child{border-bottom:0}
 .srow .si{width:36px;height:36px;border-radius:11px;background:rgba(var(--acc-rgb),.15);color:var(--accent);display:grid;place-items:center;flex:none}
 .srow .grow{flex:1;min-width:0}.srow b{display:block}
+/* ---------- menú flotante y estabilidad al hacer scroll ---------- */
+.tabs{left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom));border:1px solid var(--line);border-radius:30px;background:var(--tabbg);padding:6px;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 16px 36px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.04);transform:translateZ(0)}
+.tabs button{border-radius:24px}
+#screen{padding-bottom:116px;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+.tonight,.vwall{isolation:isolate;transform:translateZ(0);-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.vwall{animation:none}
+.vwall::before{inset:0;width:300%;left:-100%;background:linear-gradient(105deg,transparent 42%,rgba(255,214,150,.16) 50%,transparent 58%);background-size:auto;animation:wsweep2 8s ease-in-out infinite alternate;will-change:transform}
+@keyframes wsweep2{from{transform:translate3d(-30%,0,0)}to{transform:translate3d(30%,0,0)}}
+.vwall::after{inset:0 0 -160px 0;background-position:0 0;animation:dust2 9s linear infinite;will-change:transform}
+@keyframes dust2{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,-160px,0)}}
+.tonight::before{will-change:opacity}
+@media (prefers-reduced-motion:reduce){.vwall::before,.vwall::after{animation:none}}
 </style>
 </head>
 <body>
