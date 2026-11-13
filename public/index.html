@@ -39,6 +39,18 @@ svg{display:block}
 .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
 .btn.block{width:100%}
 .btn[disabled]{opacity:.45;cursor:default}
+.tonight{position:relative;overflow:hidden;border-radius:26px;padding:22px 20px 22px;margin:2px 0 8px;color:#fff3ea;background:radial-gradient(120% 90% at 90% -15%,rgba(var(--acc-rgb),.6),transparent 58%),radial-gradient(90% 80% at -5% 115%,rgba(160,40,70,.6),transparent 62%),linear-gradient(160deg,#2c1522,#150a0f 72%);border:1px solid rgba(var(--acc-rgb),.5);box-shadow:0 22px 44px -14px rgba(var(--acc-rgb),.5),inset 0 0 0 1px rgba(255,255,255,.05)}
+.tonight::before{content:"";position:absolute;inset:0;background-image:radial-gradient(1.5px 1.5px at 12% 22%,#fff 50%,transparent 52%),radial-gradient(1px 1px at 30% 70%,#ffd9b8 50%,transparent 52%),radial-gradient(1.5px 1.5px at 55% 15%,#fff 50%,transparent 52%),radial-gradient(1px 1px at 72% 62%,#fff 50%,transparent 52%),radial-gradient(1.5px 1.5px at 88% 38%,#ffd9b8 50%,transparent 52%),radial-gradient(1px 1px at 44% 88%,#fff 50%,transparent 52%),radial-gradient(1px 1px at 8% 80%,#fff 50%,transparent 52%);opacity:.7;animation:twk 4.5s ease-in-out infinite alternate;pointer-events:none}
+@keyframes twk{from{opacity:.35}to{opacity:.85}}
+.tn-beam{position:absolute;top:-40px;right:-30px;width:240px;height:300px;background:linear-gradient(200deg,rgba(255,226,190,.28),transparent 70%);clip-path:polygon(60% 0,100% 0,100% 40%,0 100%,0 80%);transform-origin:90% 0;animation:sway 7s ease-in-out infinite alternate;pointer-events:none}
+@keyframes sway{from{transform:rotate(-4deg)}to{transform:rotate(5deg)}}
+.tn-in{position:relative;z-index:1}
+.tn-k{display:inline-flex;align-items:center;gap:7px;font:700 11px var(--fb);letter-spacing:.14em;text-transform:uppercase;color:rgb(var(--acc-rgb));background:rgba(var(--acc-rgb),.14);border:1px solid rgba(var(--acc-rgb),.4);padding:5px 11px;border-radius:99px;margin-bottom:14px}
+.tonight h2,.tn-h{font:700 26px/1.12 var(--ft);margin:0 0 8px;color:#fff3ea}.tonight .now h2{font-size:21px}
+.tn-p{margin:0 0 18px;color:#e9d3c4;font-size:15px;max-width:30ch}.tn-sub{margin:0 0 6px;color:#e0c6b4;font-size:13px}.tonight .clamp{color:#ecd9cb}
+.tn-btn{padding:14px 22px;font-size:16px;box-shadow:0 10px 26px -6px rgba(var(--acc-rgb),.75)}
+.tn-ghost{background:rgba(255,255,255,.08);color:#fff3ea;border-color:rgba(255,255,255,.25)}
+@media (prefers-reduced-motion:reduce){.tonight::before,.tn-beam{animation:none}}
 .nprog{display:flex;gap:6px;margin:14px 0 4px}.nprog i{flex:1;height:4px;border-radius:9px;background:var(--line)}.nprog i.on{background:var(--accent)}
 .nopts{display:grid;gap:10px;margin-top:12px}.nopt{display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--card2);color:inherit;font:inherit;cursor:pointer;transition:transform .15s,border-color .2s}.nopt:active{transform:scale(.98)}.nopt:hover{border-color:var(--accent)}.nopt .si{color:var(--accent);display:grid}
 .chip{border:1px solid var(--line);background:transparent;padding:5px 11px;border-radius:999px;font:600 12px var(--fb);cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
@@ -629,14 +641,17 @@ inicio(){
   <button class="btn" style="margin-top:12px" data-act="watch" data-id="${s.id}">${ic('check',18)}${s.type==='Serie'?'Episodio visto':'Marcar como vista'}</button></div></div></div>`;
  return `<div class="top"><div><p class="muted small">${greet()}</p><h1>Butaca</h1></div>
   <div class="pills"><span class="pill" title="Racha">${ic('flame',16)}${S.streak}</span><span class="pill" title="Palomitas">${ic('bucket',16)}${S.coins}</span></div></div>
+ <section class="tonight" aria-label="Sesión de esta noche"><i class="tn-beam"></i><div class="tn-in">
+  <span class="tn-k">${ic('bucket',15)}Sesión de esta noche</span>
+  ${t?`<div class="now"><button class="pcard" data-act="open" data-id="${t.id}" aria-label="Abrir ${esc(t.title)}" style="width:92px;flex:none">${poster(t,'sm')}</button>
+   <div class="info"><h2>${esc(t.title)}</h2><p class="tn-sub">${t.type} · ${t.tags.slice(0,2).join(' · ')}</p><p class="clamp">${esc(t.syn)}</p><div class="wrap" style="margin-top:8px">${platChips(t)}</div></div></div>
+   <div class="wrap" style="margin-top:16px"><button class="btn" data-act="want" data-id="${t.id}">${ic('plus',18)}Quiero verla</button><button class="btn tn-ghost" data-act="night">${ic('shuffle',16)}Otra recomendación</button></div>`
+  :`<h2 class="tn-h">¿Qué vemos esta noche?</h2><p class="tn-p">Cuéntanos qué te apetece y te elegimos la peli o serie perfecta para hoy.</p>
+   <button class="btn tn-btn" data-act="night">${ic('shuffle',18)}Encontrar mi plan</button>`}
+ </div></section>
  <div class="sec" style="margin-top:0"><h2>En cartelera</h2></div>
  ${viendo.length?viendo.map(nowCard).join(''):`<div class="card muted">No hay nada en cartelera. Elige algo en Descubrir.</div>`}
- <div class="sec"><h2>Sesión de esta noche</h2></div>
- <div class="card">${t?`<div class="now"><button class="pcard" data-act="open" data-id="${t.id}" aria-label="Abrir ${t.title}" style="width:70px;flex:none">${poster(t,'sm')}</button>
-  <div class="info"><h2 style="font-size:18px">${t.title}</h2><p class="muted small" style="margin:2px 0 0">${t.tags.slice(0,2).join(' · ')}</p><p class="clamp">${esc(t.syn)}</p>
-  <div class="wrap" style="margin-top:8px">${platChips(t)}</div></div></div>
-  <div class="wrap" style="margin-top:14px"><button class="btn" data-act="want" data-id="${t.id}">${ic('plus',18)}Quiero verla</button><button class="btn ghost" data-act="night">${ic('shuffle',18)}Otra recomendación</button></div>`
-  :`<p style="margin:0 0 12px">Cuéntanos qué te apetece esta noche y te recomendamos algo en 4 preguntas.</p><button class="btn" data-act="night">${ic('shuffle',18)}Elegir película o serie</button>`}</div>
+
 ${weeklyRank()}
  ${newRow('Película','Nuevas películas')}${newRow('Serie','Nuevas series')}
  <div class="sec"><h2>Últimos días en cartel</h2></div>
