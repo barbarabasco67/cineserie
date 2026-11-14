@@ -160,3 +160,14 @@ CREATE TABLE IF NOT EXISTS list_items (
   added_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (list_id, title_id)
 );
+
+CREATE TABLE IF NOT EXISTS activity (
+  user_id TEXT NOT NULL,
+  day TEXT NOT NULL,
+  PRIMARY KEY (user_id, day)
+);
+CREATE TABLE IF NOT EXISTS challenge_done (
+  user_id TEXT NOT NULL,
+  month TEXT NOT NULL,
+  PRIMARY KEY (user_id, month)
+);

@@ -31,6 +31,8 @@ function migrate(env) {
     migrated = (async () => {
       const steps = [
         'ALTER TABLE news ADD COLUMN image TEXT',
+        'CREATE TABLE IF NOT EXISTS activity (user_id TEXT NOT NULL, day TEXT NOT NULL, PRIMARY KEY (user_id, day))',
+        'CREATE TABLE IF NOT EXISTS challenge_done (user_id TEXT NOT NULL, month TEXT NOT NULL, PRIMARY KEY (user_id, month))',
         "CREATE TABLE IF NOT EXISTS lists (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, name TEXT NOT NULL, descr TEXT, is_public INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
         "CREATE TABLE IF NOT EXISTS list_items (list_id INTEGER NOT NULL, title_id INTEGER NOT NULL, pos INTEGER NOT NULL DEFAULT 0, added_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (list_id, title_id))",
         'ALTER TABLE posts ADD COLUMN list_id INTEGER',
@@ -156,13 +158,16 @@ async function handleApi(request, env, url) {
   if (!/^[0-9a-f-]{36}$/i.test(uid)) return bad('identificador no válido');
   await ensureUser(env, uid);
   const path = url.pathname.replace(/^\/api/, '');
+  const dayHdr = request.headers.get('x-day') || '';
+  const today = /^\d{4}-\d\d-\d\d$/.test(dayHdr) ? dayHdr : new Date().toISOString().slice(0, 10);
+  const markDay = () => env.DB.prepare('INSERT OR IGNORE INTO activity (user_id, day) VALUES (?, ?)').bind(uid, today).run();
   const method = request.method;
 
   if (path === '/state' && method === 'GET') {
     const titles = await env.DB.prepare(
       "SELECT id, title, type, year, episodes, minutes, synopsis, genre, hue, platforms, tags, poster, director, writers, release_date, age, collections, saga, source, review_status,\n        (SELECT ROUND(AVG(json_extract(l.ratings, '$.score'))) FROM library l WHERE l.title_id = titles.id AND json_extract(l.ratings, '$.score') > 0) AS avg,\n        (SELECT COUNT(*) FROM library l WHERE l.title_id = titles.id AND json_extract(l.ratings, '$.score') > 0) AS votes,\n        (SELECT COUNT(*) FROM library l WHERE l.title_id = titles.id) AS fans,\n        (SELECT COUNT(*) FROM library l WHERE l.title_id = titles.id AND l.updated_at >= datetime('now', '-30 days')) AS fans30\n       FROM titles WHERE (owner_id = ? OR review_status = 'approved')"
     ).bind(uid).all();
-    const library = await env.DB.prepare('SELECT title_id, status, episode, ratings, review FROM library WHERE user_id = ?').bind(uid).all();
+    const library = await env.DB.prepare('SELECT title_id, status, episode, ratings, review, updated_at FROM library WHERE user_id = ?').bind(uid).all();
     const posts = await env.DB.prepare(
       `SELECT p.id, p.body, p.title_id, p.created_at, p.spoiler, p.list_id, (SELECT name FROM lists li WHERE li.id = p.list_id AND li.is_public = 1) AS list_name, (SELECT COUNT(*) FROM list_items x WHERE x.list_id = p.list_id) AS list_n, u.handle, u.display,
         (SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id) AS comments,
@@ -190,8 +195,14 @@ async function handleApi(request, env, url) {
        FROM plans p JOIN users u ON u.id = p.user_id WHERE p.date >= date('now', '-1 day') AND p.user_id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = ?) AND p.user_id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = ?) ORDER BY p.date, p.time LIMIT 60`
     ).bind(uid, uid, uid).all();
     const news = await env.DB.prepare('SELECT id, kind, title, body, title_id, event_date, platform, image, published_at FROM news ORDER BY published_at DESC, id DESC LIMIT 40').all();
+    const act = await env.DB.prepare("SELECT day FROM activity WHERE user_id = ? AND day >= date(?, '-400 days') ORDER BY day DESC").bind(uid, today).all();
+    const days = new Set(act.results.map((x) => x.day));
+    const dprev = (d) => new Date(Date.parse(d + 'T12:00:00Z') - 86400000).toISOString().slice(0, 10);
+    let streak = 0, cur = days.has(today) ? today : dprev(today);
+    while (days.has(cur)) { streak++; cur = dprev(cur); }
+    const chd = await env.DB.prepare('SELECT month FROM challenge_done WHERE user_id = ?').bind(uid).all();
     const me = await meInfo(env, uid);
-    return json({ me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results, news: news.results, critics: critics.results, plans: plans.results });
+    return json({ streak, active_today: days.has(today), challenges: chd.results.map((x) => x.month), me, titles: titles.results, library: library.results, posts: posts.results, weekly: weekly.results, news: news.results, critics: critics.results, plans: plans.results });
   }
 
   if (path === '/titles' && method === 'POST') {
@@ -229,6 +240,7 @@ async function handleApi(request, env, url) {
          ON CONFLICT(user_id, title_id) DO UPDATE SET status = excluded.status, episode = excluded.episode, ratings = excluded.ratings, review = excluded.review, updated_at = excluded.updated_at`
       ).bind(uid, Number(m[1]), b.status, int(b.episode, 0, 9999, 0), ratings, review).run();
     } catch { return bad('título no encontrado', 404); }
+    await markDay();
     return json({ ok: true });
   }
 
@@ -379,6 +391,7 @@ async function handleApi(request, env, url) {
     }
     try {
       const res = await env.DB.prepare('INSERT INTO posts (user_id, body, title_id, spoiler, list_id) VALUES (?, ?, ?, ?, ?)').bind(uid, body, titleId, b.spoiler ? 1 : 0, listId).run();
+      await markDay();
       return json({ id: res.meta.last_row_id });
     } catch { return bad('título no encontrado', 404); }
   }
@@ -503,6 +516,13 @@ async function handleApi(request, env, url) {
       await env.DB.prepare('DELETE FROM list_items WHERE list_id = ? AND title_id = ?').bind(id, Number(m[2])).run();
       return json({ ok: true });
     }
+  }
+  if (path === '/challenges/done' && method === 'POST') {
+    const b = await readBody(request);
+    const mo = b && typeof b.month === 'string' && /^\d{4}-\d\d$/.test(b.month) ? b.month : '';
+    if (!mo || mo !== today.slice(0, 7)) return bad('mes no válido');
+    await env.DB.prepare('INSERT OR IGNORE INTO challenge_done (user_id, month) VALUES (?, ?)').bind(uid, mo).run();
+    return json({ ok: true });
   }
   if (path === '/reports' && method === 'POST') {
     const b = await readBody(request);

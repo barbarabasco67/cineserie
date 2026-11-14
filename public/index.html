@@ -674,6 +674,24 @@ function this_open_list(id){S.lv={id,loading:true};S.sheet='list';updateSheet();
 const listCard=(l,ids)=>`<button class="lcard" data-act="listopen" data-v="${l.id}">${lcover(ids)}<span class="grow"><b>${esc(l.name)}</b><span class="muted small">${l.n} ${l.n===1?'título':'títulos'}${l.is_public?'':' · Privada'}</span></span>${ic('chevron',18)}</button>`;
 const ownItems=()=>SHOWS.filter(s=>s.status).map(s=>({s,status:s.status,ep:s.ep,r:s.r,review:s.review||''}));
 const itemsFrom=lib=>(lib||[]).map(l=>{const s=byId(l.title_id);if(!s)return null;let r={};try{r=JSON.parse(l.ratings||'{}')}catch(_){}return {s,status:l.status,ep:l.episode||0,r,review:l.review||''}}).filter(Boolean);
+const coinsNow=()=>{if(!REAL)return S.coins;const it=ownItems();return it.filter(i=>i.status==='Vista').length*50+it.filter(i=>i.status!=='Quiero ver').reduce((a,i)=>a+(i.ep||0),0)*10+it.filter(i=>i.review).length*15};
+const CHALL=[
+ {n:'Empieza el año con 2 series',goal:2,f:s=>s.type==='Serie'},
+ {n:'3 historias de amor',goal:3,f:s=>['Enemies to lovers','Fake dating','Forbidden love','Slow burn','Situationship'].some(t=>(s.tags||[]).includes(t))},
+ {n:'2 títulos para llorar',goal:2,f:s=>(s.tags||[]).includes('Para llorar')},
+ {n:'3 comfort shows',goal:3,f:s=>(s.tags||[]).includes('Comfort')},
+ {n:'2 películas',goal:2,f:s=>s.type==='Película'},
+ {n:'3 títulos de verano',goal:3,f:s=>(s.tags||[]).includes('Hot girl summer')},
+ {n:'2 series cortas',goal:2,f:s=>s.type==='Serie'&&s.eps&&s.eps<=8},
+ {n:'3 títulos con giro final',goal:3,f:s=>(s.tags||[]).includes('Plot twist')},
+ {n:'3 títulos, los que quieras',goal:3,f:s=>true},
+ {n:'3 títulos cozy de otoño',goal:3,f:s=>(s.tags||[]).includes('Cozy autumn')},
+ {n:'3 comfort shows',goal:3,f:s=>(s.tags||[]).includes('Comfort')},
+ {n:'3 planes de noche de chicas',goal:3,f:s=>(s.tags||[]).includes('Girls night')}];
+let CHDONE=[];
+const monthKey=()=>iso(new Date()).slice(0,7);
+const chInfo=()=>{const d=new Date(),c=CHALL[d.getMonth()],k=monthKey();const n=SHOWS.filter(s=>s.status==='Vista'&&(s.upd||'').slice(0,7)===k&&c.f(s)).length;return {c,k,n:Math.min(n,c.goal),done:CHDONE.includes(k)||n>=c.goal,mes:MESES[d.getMonth()]}};
+function checkChallenge(){if(!REAL)return;const i=chInfo();if(i.n>=i.c.goal&&!CHDONE.includes(i.k)){CHDONE.push(i.k);send('/challenges/done','POST',{month:i.k}).catch(()=>{});toast('Reto del mes completado. Nueva insignia');render()}}
 function achievements(items,own){
  const seen=items.filter(i=>i.status==='Vista').length,eps=items.filter(i=>i.status!=='Quiero ver').reduce((a,i)=>a+(i.ep||0),0),hrs=Math.round(eps*50/60);
  const titles=items.length,films=items.filter(i=>i.s.type==='Película'&&i.status==='Vista').length,amb=new Set(items.flatMap(i=>i.s.tags)).size;
@@ -720,9 +738,10 @@ function profileView(){
   body=revs.length?`<div class="card" style="padding:4px 16px">${revs.map(i=>`<button class="list-item" data-act="open" data-id="${i.s.id}">${poster(i.s,'sm')}<span class="grow"><b>${esc(i.s.title)}</b><span class="muted small">${kind(i.s)}</span>${i.review?`<span class="clamp">${esc(i.review)}</span>`:''}</span>${i.r&&i.r.score?ring(i.r.score,42,false):''}</button>`).join('')}</div>`:`<div class="card muted">${isMe?'Aún no has puntuado ni reseñado nada. Abre una peli o serie y dale tu nota.':'Todavía no ha puntuado nada.'}</div>`;
  }else{
   const B=S.atab==='perm'?A.PERM:A.TEMP;
+  const chBadges=isMe&&REAL&&S.atab==='temp'?CHDONE.slice().sort().reverse().map(k=>{const mi=Number(k.slice(5,7))-1;return `<div class="badge ok"><span class="ic">${ic('trophy',20)}</span><span class="grow"><b>Reto de ${MESES[mi]}</b><span class="muted small">${CHALL[mi].n}</span></span><span class="muted small">${k.slice(0,4)}</span></div>`}).join(''):'';
   body=`<div class="stats"><div class="stat"><b>${A.seen}</b><span>Terminadas</span></div><div class="stat"><b>${A.eps}</b><span>Episodios</span></div><div class="stat"><b>${A.hrs} h</b><span>Frente a la tele</span></div></div>
   <div class="seg" style="grid-template-columns:1fr 1fr;margin-top:16px" role="group" aria-label="Tipo de logros">${[['perm','Permanentes'],['temp','Temporada']].map(([k,n])=>`<button aria-pressed="${S.atab===k}" data-act="atab" data-v="${k}">${n}</button>`).join('')}</div>
-  <div class="card" style="padding:4px 16px">${B.map(b=>{const ok=b.v>=b.m,pc=Math.min(100,Math.round(b.v/b.m*100));return `<div class="badge ${ok?'ok':''}"><span class="ic">${ic(b.i,20)}</span><span class="grow"><b>${b.n}</b><span class="bar"><i style="width:${pc}%"></i></span></span><span class="muted small">${Math.min(b.v,b.m)}/${b.m}</span></div>`}).join('')}</div>`;
+  <div class="card" style="padding:4px 16px">${B.map(b=>{const ok=b.v>=b.m,pc=Math.min(100,Math.round(b.v/b.m*100));return `<div class="badge ${ok?'ok':''}"><span class="ic">${ic(b.i,20)}</span><span class="grow"><b>${b.n}</b><span class="bar"><i style="width:${pc}%"></i></span></span><span class="muted small">${Math.min(b.v,b.m)}/${b.m}</span></div>`}).join('')}${chBadges}</div>`;
  }
  return head+tabs+`<div style="margin-top:14px">${body}</div>`}
 function ajustesView(){
@@ -837,7 +856,7 @@ inicio(){
   <div class="wrap" style="margin-top:10px">${platChips(s)}</div>
   <button class="btn" style="margin-top:12px" data-act="watch" data-id="${s.id}">${ic('check',18)}${s.type==='Serie'?'Episodio visto':'Marcar como vista'}</button></div></div></div>`;
  return `<div class="top"><div><p class="muted small">${greet()}</p><h1>Butaca</h1></div>
-  <div class="pills"><span class="pill" title="Racha">${ic('flame',16)}${S.streak}</span><span class="pill" title="Palomitas">${ic('bucket',16)}${S.coins}</span></div></div>
+  <div class="pills"><span class="pill" title="Racha">${ic('flame',16)}${S.streak}</span><span class="pill" title="Palomitas">${ic('bucket',16)}${coinsNow()}</span></div></div>
 ${nextSession()}
  <section class="tonight" aria-label="Sesión de esta noche"><i class="tn-beam"></i><div class="tn-in">
   <span class="tn-k">${ic('bucket',15)}Sesión de esta noche</span>
@@ -903,7 +922,8 @@ comunidad(){
  return `<div class="top"><div><p class="muted small">Tres sitios, una comunidad</p><h1>Comunidad</h1></div></div>
  ${['cine','casa','cafe'].map(k=>{const P=PLACES[k];return `<button class="place" data-act="place" data-v="${k}" aria-label="Entrar en ${P.n}">${scene(k)}<span class="pi"><b>${P.n}</b><span class="muted small">${P.d}</span>${REAL?'':`<span class="tag" style="display:inline-block;margin-top:8px">${P.live}</span>`}</span></button>`}).join('')}
  <div class="sec"><h2>Reto del mes</h2></div>
- <div class="card"><b>Tres comfort shows en noviembre</b><div class="bar" role="progressbar" aria-valuenow="${Math.min(comfort,3)}" aria-valuemin="0" aria-valuemax="3"><i style="width:${Math.min(comfort,3)/3*100}%"></i></div><p class="muted small" style="margin:8px 0 0">${Math.min(comfort,3)} de 3 · Premio: insignia de temporada</p></div>`},
+ ${(()=>{if(!REAL){const comfort=SHOWS.filter(s=>s.status==='Vista'&&s.tags.includes('Comfort')).length,m=Math.min(comfort,3);return `<div class="card"><b>Tres comfort shows en noviembre</b><div class="bar" role="progressbar" aria-valuenow="${m}" aria-valuemin="0" aria-valuemax="3"><i style="width:${m/3*100}%"></i></div><p class="muted small" style="margin:8px 0 0">${m} de 3 · Premio: insignia de temporada</p></div>`}
+  const i=chInfo();return `<div class="card"><span class="tag">${i.mes[0].toUpperCase()+i.mes.slice(1)}</span><h2 style="font-size:18px;margin:10px 0 0">${i.c.n}</h2><div class="bar" role="progressbar" aria-valuenow="${i.n}" aria-valuemin="0" aria-valuemax="${i.c.goal}"><i style="width:${i.n/i.c.goal*100}%"></i></div><p class="muted small" style="margin:8px 0 0">${i.done?'Completado. Tienes la insignia de este mes.':i.n+' de '+i.c.goal+' · Termina títulos este mes para conseguir la insignia'}</p></div>`})()}`},
 
 perfil(){return S.ajustes?ajustesView():profileView()}
 };
@@ -1347,8 +1367,8 @@ window.addEventListener('hashchange',fromHash);
 function uid(){try{let u=localStorage.getItem('cs_uid');if(!u){u=crypto.randomUUID();localStorage.setItem('cs_uid',u)}return u}catch(_){return uid.t||(uid.t=crypto.randomUUID())}}
 function send(path,method='GET',body){
  if(typeof fetch!=='function')return Promise.reject(new Error('sin red'));
- return fetch('/api'+path,{method,headers:{'content-type':'application/json','x-uid':uid()},body:body?JSON.stringify(body):undefined}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()})}
-function syncLib(s){if(s.status)send('/library/'+s.id,'PUT',{status:s.status,episode:s.ep,ratings:s.r,review:s.review||''}).catch(()=>{})}
+ return fetch('/api'+path,{method,headers:{'content-type':'application/json','x-uid':uid(),'x-day':iso(new Date())},body:body?JSON.stringify(body):undefined}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()})}
+function syncLib(s){if(s.status){s.upd=new Date().toISOString().replace('T',' ').slice(0,19);send('/library/'+s.id,'PUT',{status:s.status,episode:s.ep,ratings:s.r,review:s.review||''}).then(()=>{if(REAL){S.today=true;checkChallenge()}}).catch(()=>{})}}
 const ago=d=>{const m=Math.max(0,Math.round((Date.now()-new Date(d.replace(' ','T')+'Z'))/60000));return m<2?'Ahora':m<60?`Hace ${m} min`:m<1440?`Hace ${Math.round(m/60)} h`:`Hace ${Math.round(m/1440)} d`};
 function load(){
  send('/state').then(d=>{
@@ -1356,9 +1376,10 @@ function load(){
   (d.news||[]).forEach((n,i)=>{NEWS.push({nid:n.id,k:n.kind,t:n.title,x:n.body||'',id:n.title_id,img:n.image||'',p:n.platform||'',date:n.event_date||'',w:ago(n.published_at)});if(n.event_date)PREM.push({date:n.event_date,id:n.title_id,t:n.title,p:n.platform||'',i:i})});
   (d.critics||[]).forEach(c=>CRIT.push({n:c.display||c.handle,h:'@'+c.handle,u:c.handle,v:c.reviews,f:c.followers}));
   (d.plans||[]).forEach(p=>PLANS.push({id:p.id,kind:p.kind,tid:p.title_id,name:p.title||'',date:p.date,time:p.time||'',note:p.note||'',host:p.display||p.handle,hh:p.handle,n:p.members,j:p.joined>0}));
+  S.streak=d.streak||0;S.today=!!d.active_today;CHDONE=d.challenges||[];
   WEEKLY=d.weekly||[];S.me=d.me||null;
   d.titles.forEach(t=>{if(byId(t.id))return;SHOWS.push({avg:t.avg,votes:t.votes,id:t.id,poster:t.poster,director:t.director,writers:t.writers,release:t.release_date,age:t.age,coll:(t.collections||'').split(',').map(x=>x.trim()).filter(Boolean),saga:t.saga||'',title:t.title,type:t.type,year:t.year||2026,eps:t.episodes,min:t.minutes,status:null,ep:0,platforms:JSON.parse(t.platforms||'[]'),tags:JSON.parse(t.tags||'[]'),hue:t.hue,leaving:null,r:{llorar:0,reir:0,tension:0,romance:0,comfort:0,slow:0},syn:t.synopsis,source:t.source,proposed:t.review_status==='pending'});if(t.genre)GMAP[t.id]=t.genre});
-  d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status==='En pausa'?'Viendo':l.status;s.ep=l.episode;s.review=l.review||'';try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
+  d.library.forEach(l=>{const s=byId(l.title_id);if(!s)return;s.status=l.status==='En pausa'?'Viendo':l.status;s.ep=l.episode;s.review=l.review||'';s.upd=l.updated_at||'';try{s.r={...s.r,...JSON.parse(l.ratings||'{}')}}catch(_){}});
   d.posts.slice().reverse().forEach(p=>{if(POSTS.some(x=>x.k===p.id))return;const mine=p.liked>0;if(mine)S.liked.add(p.id);POSTS.unshift({k:p.id,u:p.handle,n:p.display,h:'@'+p.handle,t:ago(p.created_at),x:p.body,id:p.title_id,l:p.likes-(mine?1:0),c:p.comments||0,sp:!!p.spoiler,lid:p.list_id,ln:p.list_name,lc:p.list_n})});
   d.titles.forEach(t=>{const s=byId(t.id);if(!s)return;s.fans=t.fans||0;if(t.fans>0)STATS[t.id]=[t.fans30||0,t.fans||0,t.avg?t.avg/20:0]});
   PLANS.forEach(p=>{const t=byId(p.tid),nm=t?t.title:p.name;if(nm)PREM.push({date:p.date,id:t?p.tid:null,t:'Sesión: '+nm,p:'Sesión juntas'+(p.time?' · '+p.time:''),i:100000+p.id})});
@@ -1366,6 +1387,7 @@ function load(){
   Object.values(dm).sort((a,b)=>b.v-a.v||b.f-a.f).slice(0,10).forEach(o=>DIRS.push(o));
   render();
   loadLists();
+  checkChallenge();
   const lm=(location.hash||'').match(/^#lista\/(\d+)/);if(lm&&!S.lv)this_open_list(Number(lm[1]));
  }).catch(()=>{});
 }
