@@ -579,6 +579,56 @@ const S={tab:'inicio',streak:3,coins:120,today:false,platforms:new Set(['Netflix
 let REAL=false;
 const byId=id=>SHOWS.find(s=>s.id===id);
 const dd=(k,t,v,body)=>`<div class="dd"><button class="dd-h" aria-expanded="${S.dd===k}" data-act="dd" data-v="${k}"><span><b>${t}</b><small>${v}</small></span>${ic('chevron',16)}</button>${S.dd===k?`<div class="wrap dd-b">${body}</div>`:''}</div>`;
+let LIKES=new Set((()=>{try{return JSON.parse(localStorage.getItem('cs_likes')||'[]')}catch(_){return[]}})());
+const saveLikes=()=>{try{localStorage.setItem('cs_likes',JSON.stringify([...LIKES]))}catch(_){}};
+function profileWeights(){
+ const tag={},gen={},dir={};let n=0;
+ SHOWS.forEach(s=>{if(!s.status)return;
+  const sc=s.r&&s.r.score?s.r.score/100:0;
+  const w=s.status==='Abandonada'?-0.5:s.status==='Quiero ver'?0.3:(sc?0.4+sc:0.7);
+  n++;(s.tags||[]).forEach(t=>tag[t]=(tag[t]||0)+w);
+  String(GMAP[s.id]||'').split(',').filter(Boolean).forEach(g=>gen[g]=(gen[g]||0)+w*0.7);
+  String(s.director||'').split(/,| y /).map(x=>x.trim()).filter(Boolean).forEach(d=>dir[d]=(dir[d]||0)+w*0.8)});
+ LIKES.forEach(m=>tag[m]=(tag[m]||0)+1);
+ return {tag,gen,dir,n,hasSignal:n>0||LIKES.size>0};
+}
+function recommend(){
+ const W=profileWeights();if(!W.hasSignal)return {W,list:[],because:null};
+ const lim=new Date(Date.now()-150*86400000).toISOString().slice(0,10);
+ const lib=SHOWS.filter(x=>x.status&&x.status!=='Abandonada');
+ const cand=SHOWS.filter(x=>!x.status);
+ const list=cand.map(c=>{
+  let sc=0,best=null;
+  (c.tags||[]).forEach(t=>{const v=W.tag[t]||0;sc+=v;if(v>0&&(!best||v>best.v))best={t,v}});
+  String(GMAP[c.id]||'').split(',').filter(Boolean).forEach(g=>sc+=W.gen[g]||0);
+  String(c.director||'').split(/,| y /).map(x=>x.trim()).filter(Boolean).forEach(d=>sc+=W.dir[d]||0);
+  if(avail(c).length)sc+=1.2;
+  if(c.avg)sc+=c.avg/100;
+  if((c.release||'')>=lim)sc+=0.3;
+  let why='';
+  const shared=lib.map(l=>({l,n:(l.tags||[]).filter(t=>(c.tags||[]).includes(t)).length})).filter(o=>o.n>0).sort((a,b)=>b.n-a.n)[0];
+  if(shared)why='Porque viste «'+shared.l.title+'»';
+  else if(best&&LIKES.has(best.t))why='Va con tu gusto: '+best.t;
+  else if(best)why='Te va: '+best.t;
+  else if(avail(c).length)why='Está en tus plataformas';
+  return {s:c,sc,why}}).filter(o=>o.sc>0.5).sort((a,b)=>b.sc-a.sc);
+ const lastSeen=lib.filter(x=>x.status==='Vista'||x.status==='Viendo').sort((a,b)=>((b.r&&b.r.score)||0)-((a.r&&a.r.score)||0))[0];
+ let because=null;
+ if(lastSeen){const sim=cand.map(c=>({s:c,n:(c.tags||[]).filter(t=>(lastSeen.tags||[]).includes(t)).length})).filter(o=>o.n>0).sort((a,b)=>b.n-a.n).slice(0,8);if(sim.length)because={from:lastSeen,list:sim.map(o=>o.s)}}
+ return {W,list,because};
+}
+const recCard=(s,why)=>`<button class="ncard" data-act="open" data-id="${s.id}" aria-label="Abrir ${esc(s.title)}">${poster(s,'sm')}<b>${esc(s.title)}</b>${why?`<span class="muted small" style="display:block">${esc(why)}</span>`:''}</button>`;
+function recsHTML(){
+ const R=recommend();
+ const likeChips=`<div class="wrap" style="margin-top:12px">${MOODS.map(m=>`<button class="chip" aria-pressed="${LIKES.has(m)}" data-act="liketoggle" data-v="${esc(m)}">${m}</button>`).join('')}</div>`;
+ if(!R.W.hasSignal)return `<div class="card" style="margin-bottom:14px"><b>Elige lo que te gusta</b><p class="muted small" style="margin:6px 0 0">Marca unas cuantas etiquetas y te recomendamos títulos a tu medida. Cuanto más veas y puntúes, mejor acertamos.</p>${likeChips}</div>`;
+ const top=R.list.slice(0,8);
+ return `<div class="seas" style="margin-top:6px"><h2>Elegidas para ti</h2><button class="chip" data-act="likesopen">Mis gustos</button></div>
+ ${top.length?`<div class="row-scroll nrow" style="margin-bottom:6px">${top.map(o=>recCard(o.s,o.why)).join('')}</div>`:EMPTY('Aún no tenemos títulos que encajen. Prueba a marcar más gustos en «Mis gustos» o añade títulos a tu videoclub.')}
+ ${(()=>{const ids=new Set(top.map(o=>o.s.id)),bl=R.because?R.because.list.filter(c=>!ids.has(c.id)):[];return bl.length?`<div class="sec"><h2>Porque viste «${esc(R.because.from.title)}»</h2></div><div class="row-scroll nrow">${bl.map(c=>recCard(c,'')).join('')}</div>`:''})()}`}
+function likesHTML(){
+ return `<div class="sheet-head"><div class="grow"><h2>Mis gustos</h2><p class="muted small" style="margin:2px 0 0">Marca lo que te apetece ver. Ajusta tus recomendaciones.</p></div><button class="icon-btn" data-act="close" aria-label="Cerrar">${ic('close',18)}</button></div>
+ <div class="wrap" style="margin-top:14px">${MOODS.map(m=>`<button class="chip" aria-pressed="${LIKES.has(m)}" data-act="liketoggle" data-v="${esc(m)}">${m}</button>`).join('')}</div>`}
 const avail=s=>s.platforms.filter(p=>S.platforms.has(p));
 const $=s=>document.querySelector(s);
 
@@ -836,6 +886,7 @@ descubrir(){
  if(S.dtab==='estrenos')return `<div class="top"><h1>Descubrir</h1></div>${seg}${calendar()}`;
  if(S.dtab==='noticias')return `<div class="top"><h1>Descubrir</h1></div>${seg}${newsView()}`;
  return `<div class="top"><h1>Descubrir</h1><button class="icon-btn" data-act="addopen" aria-label="Añadir un título">${ic('plus',18)}</button></div>${seg}
+${!S.q&&!S.mood&&!S.coll&&!S.kind?recsHTML():''}
  <label class="search">${ic('search',18)}<input id="q" type="search" placeholder="Buscar series y películas" value="${esc(S.q)}" aria-label="Buscar"></label>
  <div class="seg3" role="group" aria-label="Tipo">${[[null,'Todo'],['Película','Películas'],['Serie','Series']].map(([k,n])=>`<button aria-pressed="${S.kind===k}" data-act="kind" data-v="${k||''}">${n}</button>`).join('')}</div>
  <div class="fbar" role="group" aria-label="Filtros">
@@ -844,7 +895,7 @@ descubrir(){
   <button class="fchip ${S.platforms.size?'on':''}" data-act="fopen" data-v="plat">${S.platforms.size?'Plataformas · '+S.platforms.size:'Plataformas'}${ic('chevron',14)}</button>
   <button class="fchip ${S.mine?'on':''}" role="switch" aria-checked="${S.mine}" data-act="mine">${S.mine?ic('check',14):''}Solo mis plataformas</button>
  </div>
- <h3>Para ti</h3><div class="card" style="padding:4px 16px" id="results">${results()}</div>`},
+ <h3>${!S.q&&!S.mood&&!S.coll&&!S.kind?'Buscar':'Resultados'}</h3><div class="card" style="padding:4px 16px" id="results">${results()}</div>`},
 
 comunidad(){
  if(S.place)return placeView();
@@ -1072,7 +1123,7 @@ function updateTabs(){const t=$('#tabs');if(!t.dataset.ready){t.innerHTML='<i cl
  [...t.querySelectorAll('button')].forEach((b,i)=>{const on=TABS[i][0]===S.tab;if(on&&b.getAttribute('aria-current')!=='page'){b.setAttribute('aria-current','page');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');t.style.setProperty('--i',i)}else if(!on)b.removeAttribute('aria-current')})}
 function updateSheet(){
  const sh=$('#sheet'),top=sh.scrollTop,was=sh.classList.contains('on');
- if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='comments'?commentsHTML():S.sheet==='plan'?planHTML():S.sheet==='live'?liveHTML():S.sheet==='rec'?recHTML():S.sheet==='list'?listHTML():S.sheet==='newlist'?newListHTML():S.sheet==='addlist'?addListHTML():S.sheet==='forgot'?forgotHTML():S.sheet==='recdone'?recDoneHTML():S.sheet==='mod'?modHTML():S.sheet==='blocks'?blocksHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
+ if(S.sheet!==null){sh.innerHTML=typeof S.sheet==='number'?sheetHTML(byId(S.sheet)):S.sheet==='add'?addHTML():S.sheet==='post'?postHTML():S.sheet==='comments'?commentsHTML():S.sheet==='plan'?planHTML():S.sheet==='live'?liveHTML():S.sheet==='rec'?recHTML():S.sheet==='likes'?likesHTML():S.sheet==='list'?listHTML():S.sheet==='newlist'?newListHTML():S.sheet==='addlist'?addListHTML():S.sheet==='forgot'?forgotHTML():S.sheet==='recdone'?recDoneHTML():S.sheet==='mod'?modHTML():S.sheet==='blocks'?blocksHTML():S.sheet==='theme'?themeHTML():S.sheet==='user'?userHTML():S.sheet==='night'?nightHTML():S.sheet==='filt'?filtHTML():S.sheet==='flist'?flistHTML():S.sheet==='reqs'?reqsHTML():S.sheet==='pass'?passHTML():S.sheet==='login'?loginHTML():styleHTML();sh.scrollTop=top}
  if(!was&&S.sheet!==null){sh.classList.add('fresh');setTimeout(()=>sh.classList.remove('fresh'),800)}
  sh.classList.toggle('on',S.sheet!==null);$('#backdrop').classList.toggle('on',S.sheet!==null);
 }
@@ -1222,6 +1273,8 @@ document.addEventListener('click',e=>{
   case 'newlistsave':{const name=($('#nl-name').value||'').trim(),descr=($('#nl-desc').value||'').trim();if(!name){toast('Ponle un nombre a la lista');break}const tid=S.nl.tid,pub=S.nl.pub!==false;send('/lists','POST',{name,descr,is_public:pub}).then(r=>{const add=tid?send('/lists/'+r.id+'/items','POST',{title_id:Number(tid)}):Promise.resolve();return add.then(()=>r.id)}).then(id=>{loadLists();if(tid){S.sheet=null;updateSheet();toast('Lista creada y título añadido')}else{S.nl=null;this_open_list(id)}}).catch(()=>toast('No se ha podido crear'));break}
   case 'addlist':S.al=Number(id);S.sheet='addlist';updateSheet();break;
   case 'altoggle':{const l=LISTS.find(x=>x.id===Number(v)),tid=S.al;if(!l)break;const ids=listIds(l),on=ids.includes(tid);send('/lists/'+l.id+'/items'+(on?'/'+tid:''),on?'DELETE':'POST',on?undefined:{title_id:tid}).then(()=>{const nid=on?ids.filter(x=>x!==tid):ids.concat(tid);l.ids=nid.join(',')||null;l.n=nid.length;updateSheet();toast(on?'Quitada de la lista':'Añadida a la lista')}).catch(()=>toast('No se ha podido cambiar'));break}
+  case 'likesopen':S.sheet='likes';updateSheet();break;
+  case 'liketoggle':{LIKES.has(v)?LIKES.delete(v):LIKES.add(v);saveLikes();if(S.sheet==='likes')updateSheet();render();break}
   case 'reveal':S.reveal.add(isNaN(Number(v))?v:Number(v));render();break;
   case 'pspoil':S.pspoil=!S.pspoil;updateSheet();break;
   case 'comments':{const k=isNaN(Number(v))?v:Number(v);const p=[...POSTS,...(typeof PROFPOSTS!=='undefined'?PROFPOSTS:[])].find(x=>x.k===k)||POSTS.find(x=>String(x.k)===String(k))||{k,u:'',n:'',x:'',c:0};if(typeof k!=='number'){toast('Los comentarios están disponibles en mensajes reales');break}S.cpost=p;S.cmts=null;S.sheet='comments';updateSheet();send('/posts/'+k+'/comments').then(r=>{S.cmts=r.comments||[];if(S.sheet==='comments'){const keep=($('#f-cm')||{}).value||'';updateSheet();if($('#f-cm'))$('#f-cm').value=keep}}).catch(()=>{S.cmts=[];updateSheet()});break}
